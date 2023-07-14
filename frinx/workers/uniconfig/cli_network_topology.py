@@ -16,7 +16,7 @@ from frinx.services.uniconfig.cli_network_topology import execute_and_read
 class CliNetworkTopology(ServiceWorkersImpl):
     class ExecuteAndRead(WorkerImpl):
         class WorkerDefinition(TaskDefinition):
-            name: str = 'Execute_and_read_RPC'
+            name: str = 'UNICONFIG_Execute_and_read_RPC'
             description: str = 'Run execute and read RPC'
 
         class WorkerInput(TaskInput):
@@ -43,7 +43,7 @@ class CliNetworkTopology(ServiceWorkersImpl):
 
     class Execute(WorkerImpl):
         class WorkerDefinition(TaskDefinition):
-            name: str = 'Execute_RPC'
+            name: str = 'UNICONFIG_Execute_RPC'
             description: str = 'Run execute RPC'
             labels: ListAny = ['UNICONFIG']
 

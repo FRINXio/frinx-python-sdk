@@ -13,7 +13,7 @@ from frinx.services.inventory.operations import execute_inventory_query
 class Inventory(ServiceWorkersImpl):
     class ExecuteInventoryQuery(WorkerImpl):
         class WorkerDefinition(TaskDefinition):
-            name: str = 'Execute_inventory_query'
+            name: str = 'INVENTORY_Execute_inventory_query'
             description: str = 'Execute inventory query'
 
         class WorkerInput(TaskInput):
