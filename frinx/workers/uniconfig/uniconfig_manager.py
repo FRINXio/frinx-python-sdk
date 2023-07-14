@@ -18,7 +18,7 @@ from frinx.services.uniconfig.uniconfig_manager import sync_from_network
 class UniconfigManager(ServiceWorkersImpl):
     class CreateTransaction(WorkerImpl):
         class WorkerDefinition(TaskDefinition):
-            name: str = 'Create_transaction_RPC'
+            name: str = 'UNICONFIG_Create_transaction_RPC'
             description: str = 'Create Uniconfig transaction'
 
         class WorkerInput(TaskInput):
@@ -46,7 +46,7 @@ class UniconfigManager(ServiceWorkersImpl):
 
     class CloseTransaction(WorkerImpl):
         class WorkerDefinition(TaskDefinition):
-            name: str = 'Close_transaction_RPC'
+            name: str = 'UNICONFIG_Close_transaction_RPC'
             description: str = 'Close Uniconfig transaction'
 
         class WorkerInput(TaskInput):
@@ -59,7 +59,7 @@ class UniconfigManager(ServiceWorkersImpl):
 
     class CommitTransaction(WorkerImpl):
         class WorkerDefinition(TaskDefinition):
-            name: str = 'Commit_transaction_RPC'
+            name: str = 'UNICONFIG_Commit_transaction_RPC'
             description: str = 'Commit Uniconfig transaction'
 
         class WorkerInput(TaskInput):
@@ -85,7 +85,7 @@ class UniconfigManager(ServiceWorkersImpl):
 
     class ReplaceConfigWithOperational(WorkerImpl):
         class WorkerDefinition(TaskDefinition):
-            name: str = 'Replace_config_with_operational_RPC'
+            name: str = 'UNICONFIG_Replace_config_with_operational_RPC'
             description: str = 'Replace Uniconfig CONFIG datastore with OPER datastore'
 
         class WorkerInput(TaskInput):
@@ -108,7 +108,7 @@ class UniconfigManager(ServiceWorkersImpl):
 
     class SyncFromNetwork(WorkerImpl):
         class WorkerDefinition(TaskDefinition):
-            name: str = 'Sync_from_network_RPC'
+            name: str = 'UNICONFIG_Sync_from_network_RPC'
             description: str = 'Synchronize configuration from network and the UniConfig nodes'
 
         class WorkerInput(TaskInput):
