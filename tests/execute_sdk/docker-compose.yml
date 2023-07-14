@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  conductor-server:
+    image: frinx/conductor-server:latest
+    environment:
+      - conductor_db_type=postgres
+      - spring_datasource_url="jdbc:postgresql://postgres:5432/conductor"
+      - spring_searchDatasource_url="jdbc:postgresql://postgres:5432/conductor"
+      - conductor_externalPayloadStorage_postgres_url="jdbc:postgres://postgresql:5432/conductor"
+    healthcheck:
+      test: curl -I -X GET http://localhost:8080/health
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - 8081:8080
+
+  postgres:
+    image: frinx/postgres:12.10
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    healthcheck:
+      test: pg_isready -U postgres
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  worker:
+    image: frinx/worker
+    build:
+      context: ../../
+      dockerfile: tests/execute_sdk/Dockerfile
+    depends_on:
+      conductor-server:
+        condition: service_healthy
+    environment:
+      CONDUCTOR_URL_BASE: "http://conductor-server:8080/api"
+    healthcheck:
+      test: curl -X GET http://localhost:8000/metrics
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s

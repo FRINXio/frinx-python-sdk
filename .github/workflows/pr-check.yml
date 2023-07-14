@@ -51,3 +51,5 @@ jobs:
       - name: Run unit tests
         run: |
           poetry run pytest tests/unit_tests/ -vv
+      - name: Execute worker and dependency
+        run: docker compose -f tests/execute_sdk/docker-compose.yml up -d

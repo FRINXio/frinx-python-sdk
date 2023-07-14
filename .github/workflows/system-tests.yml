@@ -1,0 +1,44 @@
+name: Conductor system tests
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '00 17 * * *'
+
+  push:
+    branches:
+      - main
+
+jobs:
+  system-tests:
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11"]
+        poetry-version: ["1.4.2"]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Run image
+        uses: abatilo/actions-poetry@v2
+        with:
+          poetry-version: ${{ matrix.poetry-version }}
+      - name: Clone ga_workflows_collected_data
+        if: ${{ ( success() || failure() ) &&  ( steps.execute_tests.outcome != 'skipped' ) }}
+        uses: actions/checkout@v3
+        with:
+          repository: FRINXio/ga_workflows_collected_data
+          ref: main
+          token: ${{ secrets.token_ga_workflows_collected_data }}
+          path: ./ga_workflows_collected_data
+      - name: Install package dependencies
+        run: poetry install
+      - name: Execute worker and dependency
+        run: docker compose -f tests/execute_sdk/docker-compose.yml up -d
+      - name: Run system tests
+        run: |
+          poetry run pytest tests/system_tests/ -vv \
+            --collect-stats-folder="ga_workflows_collected_data/"
