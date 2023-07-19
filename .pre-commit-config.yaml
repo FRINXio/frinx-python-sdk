@@ -34,7 +34,7 @@ repos:
         name: fix end of file
 
   - repo: https://github.com/RobertCraigie/pyright-python
-    rev: v1.1.305
+    rev: v1.1.317
     hooks:
       - id: pyright
         entry: poetry run pyright

@@ -1,3 +1,6 @@
+# frinx_python_sdk custom files
+test-results.xml
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

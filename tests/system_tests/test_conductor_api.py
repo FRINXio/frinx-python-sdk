@@ -2,17 +2,18 @@ import asyncio
 import json
 import logging
 import time as sleep_time
+from typing import Any
 
 import aiohttp
 import pytest
-from test_conductor_performance import CONDUCTOR_HEADERS
-from test_conductor_performance import CONDUCTOR_URL
-from test_conductor_performance import exec_wf
-from test_conductor_performance import get_wf_execution
+from conftest import CONDUCTOR_HEADERS
+from conftest import CONDUCTOR_URL_BASE
+from conftest import exec_wf
+from conftest import get_wf_execution
 
 LOGGER = logging.getLogger(__name__)
 
-CONDUCTOR_WF_EXEC_RQ_FORK = {
+CONDUCTOR_WF_EXEC_RQ_FORK: dict[str, Any] = {
     'name': 'Test_fork_workflow',
     'input': {
         'fork_count': 5,
@@ -24,24 +25,41 @@ CONDUCTOR_WF_EXEC_RQ_FORK = {
 }
 
 
-async def get_wf_path(session, wf_id) -> dict:
-    url = CONDUCTOR_URL + 'workflow/path/' + wf_id
+async def get_wf_path(session: aiohttp.ClientSession, wf_id: str) -> Any:
+    url = CONDUCTOR_URL_BASE + 'workflow/path/' + wf_id
     async with session.get(url, headers=CONDUCTOR_HEADERS) as r_future:
         response = await r_future.read()
         r_future.raise_for_status()
         return json.loads(response)
 
 
-async def get_wf_family(session, wf_id, summary=True) -> dict:
-    url = CONDUCTOR_URL + 'workflow/family/' + wf_id + '?summaryOnly=' + str(summary).lower()
+async def get_wf_family(session: aiohttp.ClientSession, wf_id: str, summary: bool = True) -> Any:
+    url = CONDUCTOR_URL_BASE + 'workflow/family/' + wf_id + '?summaryOnly=' + str(summary).lower()
     async with session.get(url, headers=CONDUCTOR_HEADERS) as r_future:
         response = await r_future.read()
         r_future.raise_for_status()
         return json.loads(response)
+
+
+async def wait_for_completion(sleep_seconds: int, executed_id: str, session: aiohttp.ClientSession) -> None:
+    iterations = 10
+
+    for i in range(iterations):
+        wf_execution = await get_wf_execution(session, executed_id)
+        if wf_execution['status'] == 'COMPLETED':
+            break
+        elif i is (iterations - 1):
+            LOGGER.error('Workflow not completed. Execution: %s', wf_execution)
+            raise Exception(
+                'Workflow not completed in {} seconds. Current status: {}'.format(
+                    iterations * sleep_seconds, wf_execution['status']
+                )
+            )
+        sleep_time.sleep(sleep_seconds)
 
 
 @pytest.mark.asyncio
-async def test_path_and_family_apis():
+async def test_path_and_family_apis() -> None:
     sleep = 4
 
     async with aiohttp.ClientSession() as session:
@@ -67,21 +85,3 @@ async def test_path_and_family_apis():
         assert len(family) == 1
         # This was summary only, workflowInput should be null
         assert not family[0].get('input', None)
-
-
-async def wait_for_completion(sleep_seconds, executed_id, session):
-    iterations = 10
-
-    for i in range(iterations):
-        wf_execution = await get_wf_execution(session, executed_id)
-        if wf_execution['status'] == 'COMPLETED':
-            break
-        elif i is (iterations - 1):
-            LOGGER.error('Workflow not completed. Execution: %s', wf_execution)
-            raise Exception(
-                'Workflow not completed in {} seconds. Current status: {}'.format(
-                    iterations * sleep_seconds, wf_execution['status']
-                )
-            )
-
-        sleep_time.sleep(sleep_seconds)

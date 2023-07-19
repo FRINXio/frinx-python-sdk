@@ -1,12 +1,12 @@
 [tool.poetry]
 name = "example_worker"
 version = "0.0.1"
-description = "Example of worker implemtation"
+description = "Example of worker implementation"
 authors = ["Jozef Volak <jozefvolak@elisapolystar.com>"]
 
 [tool.poetry.dependencies]
 python = "^3.10"
-frinx-python-sdk = "^0.1.0"
+frinx-python-sdk = "^0.1.1"
 
 [build-system]
 requires = ["poetry-core"]

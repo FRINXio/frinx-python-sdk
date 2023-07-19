@@ -1,21 +1,13 @@
 import logging
 import os
 
+from frinx.client.frinx_conductor_wrapper import FrinxConductorWrapper
 from frinx.common.logging import logging_common
 from frinx.common.logging.logging_common import LoggerConfig
 from frinx.common.logging.logging_common import Root
 
 
-def debug_local():
-    os.environ['UNICONFIG_URL_BASE'] = 'http://localhost/api/uniconfig'
-    os.environ['CONDUCTOR_URL_BASE'] = os.environ.get('CONDUCTOR_URL_BASE', 'http://127.0.0.1:8088/proxy/api')
-    os.environ['SCHELLAR_URL_BASE'] = os.environ.get('SCHELLAR_URL_BASE', 'http://127.0.0.1:3001/query')
-    os.environ['INVENTORY_URL_BASE'] = 'http://localhost/api/inventory'
-    os.environ['INFLUXDB_URL_BASE'] = 'http://localhost:8086'
-    os.environ['RESOURCE_MANAGER_URL_BASE'] = 'http://localhost/api/resource'
-
-
-def register_tasks(conductor_client):
+def register_tasks(conductor_client: FrinxConductorWrapper) -> None:
     from frinx.workers.schellar.schellar_worker import Schellar
     from frinx.workers.test.test_worker import TestWorker
     from frinx.workers.uniconfig.cli_network_topology import CliNetworkTopology
@@ -31,7 +23,7 @@ def register_tasks(conductor_client):
     Schellar().register(conductor_client)
 
 
-def register_workflows():
+def register_workflows() -> None:
     logging.info('Register workflows')
 
     from frinx.workflows.schellar.schellar_workflows import SchellarWorkflows
@@ -43,19 +35,7 @@ def register_workflows():
     SchellarWorkflows().register(overwrite=True)
 
 
-def query_api():
-    from frinx.common.graphql.client import GraphqlClient
-    from frinx.common.graphql.graphql_types import schema_request
-    from frinx.common.graphql.schema_converter import GraphqlJsonParser
-
-    client = GraphqlClient(endpoint='http://127.0.0.1:3001/query')
-    import frinx.services.schellar.model
-    response = client.execute(schema_request)
-    schema = GraphqlJsonParser(input_json=response)
-    schema.export(frinx.services.schellar.model.__file__)
-
-
-def main():
+def main() -> None:
 
     logging_common.configure_logging(
         LoggerConfig(
@@ -70,7 +50,6 @@ def main():
     from frinx.common.telemetry.metrics import MetricsSettings
 
     Metrics(settings=MetricsSettings(metrics_enabled=True))
-    debug_local()
 
     from frinx.client.frinx_conductor_wrapper import FrinxConductorWrapper
     from frinx.common.frinx_rest import CONDUCTOR_HEADERS
@@ -80,7 +59,7 @@ def main():
         server_url=CONDUCTOR_URL_BASE,
         polling_interval=0.1,
         max_thread_count=50,
-        headers=CONDUCTOR_HEADERS,
+        headers=CONDUCTOR_HEADERS.__dict__,
     )
 
     register_tasks(conductor_client)
