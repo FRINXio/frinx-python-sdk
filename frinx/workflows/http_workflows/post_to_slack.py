@@ -20,7 +20,7 @@ class PostToSlack(HTTPWorkflowService.GenericRequest):
         http_request = { 
             'body': {'text': '${workflow.input.body}'},
             'method': 'POST',
-            'uri': 'https://hooks.slack.com/services/${workflow.input.uri}'
+            'uri': '${workflow.input.uri}'
         }
 
         self.tasks.append(
