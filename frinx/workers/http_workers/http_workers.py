@@ -36,7 +36,7 @@ class Http(ServiceWorkersImpl):
             status_code: int = Field(..., alias='statusCode')
             cookies: dict[str, Any]
 
-        def execute(self, task: Task) -> TaskResult:
+        def execute(self, task: Task) -> TaskResult[Any]:
             http_output = http_service.http_task(**task.input_data)
 
             if http_output.code == http_service.TERMINAL_ERROR:
