@@ -1,6 +1,6 @@
 from frinx.common.workflow.task import SimpleTask
-from frinx.common.workflow.task import TaskType
 from frinx.common.workflow.task import SimpleTaskInputParameters
+from frinx.common.workflow.task import TaskType
 from frinx.workers.http_workers.http_workers import Http
 from frinx.workflows.http_workflows.generic import HTTPWorkflowService
 
@@ -28,6 +28,6 @@ class PostToSlack(HTTPWorkflowService.GenericRequest):
                 name=Http.HttpTask,
                 type=TaskType.HTTP,
                 input_parameters=SimpleTaskInputParameters(http_request=http_request),
-                task_reference_name="Generic http task"
+                task_reference_name='Generic http task'
             )
         )

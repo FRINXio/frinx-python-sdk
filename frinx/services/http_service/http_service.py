@@ -1,18 +1,20 @@
 import json
-import requests
-
+from json import JSONDecodeError
 from typing import Any
 from typing import Optional
-from pydantic import Field
-from pydantic import validator
+
+import requests
 from pydantic import BaseModel
-from json import JSONDecodeError
+from pydantic import Field
 from pydantic import ValidationError
+from pydantic import validator
 from pydantic.networks import AnyHttpUrl
 from requests.exceptions import RequestException
 
 from frinx.services.http_service.enums import HTTPMethod
 from frinx.services.http_service.exceptions import InvalidJSONError
+
+TERMINAL_ERROR = -1
 
 
 class HTTPInput(BaseModel):
@@ -25,17 +27,18 @@ class HTTPInput(BaseModel):
     method: HTTPMethod = Field(...)
     url: AnyHttpUrl = Field(..., alias='uri')
     headers: dict[str, str] = Field(default={})
-    data: dict[str, Any] | list[Any] | str = Field(default=None, alias='body')
+    data: dict[str, Any] | list[Any] | str | None = Field(default=None, alias='body')
     params: dict[str, str] = Field(default={}, alias='query_string_parameters')
-    cookies: dict[str, str] = Field(default=None)
+    cookies: dict[str, str] | None = Field(default=None)
     # TODO: validate if float is positive and less than 5 min
-    timeout: float | tuple[float, float] = Field(default=None)
+    timeout: float | tuple[float, float] | None = Field(default=None)
 
     @validator('data')
-    def encode_decode(cls, data) -> str:
+    def encode_decode(cls, data: dict[str, Any] | list[Any] | str | None) -> Optional[
+    dict[str, Any] | list[Any] | str | None]:
         if data:
             try:
-                data = json.dumps(json.loads(data)) if isinstance(data, str) else json.dumps(data)
+               json.dumps(json.loads(data)) if isinstance(data, str) else json.dumps(data)
             except JSONDecodeError as err:
                 raise InvalidJSONError(err.args)
         return data
@@ -58,12 +61,12 @@ def http_task(http_input: HTTPInput | dict[str, Any]) -> HTTPOutput:
         try:
             http_input = HTTPInput(**http_input)
         except ValidationError as err:
-            return HTTPOutput(code=-1, data={}, errors=[json.dumps(e) for e in err.errors()])
+            return HTTPOutput(code=TERMINAL_ERROR, data={}, errors=[json.dumps(e) for e in err.errors()])
 
     try:
         response = requests.request(**http_input.dict())
     except RequestException as err:
-        return HTTPOutput(code=-1, data={}, errors=[str(err)])
+        return HTTPOutput(code=TERMINAL_ERROR, data={}, errors=[str(err)])
 
     return HTTPOutput(
         logs=f'< {http_input.method} {response.url} | status: {response.status_code} {response.reason} >',
