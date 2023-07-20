@@ -33,6 +33,7 @@ class HTTPInput(BaseModel):
     # TODO: validate if float is positive and less than 5 min
     timeout: float | tuple[float, float] | None = Field(default=None)
 
+    @classmethod
     @validator('data')
     def encode_decode(cls, data: dict[str, Any] | list[Any] | str | None) -> Optional[
     dict[str, Any] | list[Any] | str | None]:
