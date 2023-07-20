@@ -8,8 +8,8 @@ os.environ['RESOURCE_MANAGER_URL_BASE'] = 'http://localhost/api/resource'
 
 import logging
 
-from workflows.post_to_slack import HTTPWorker
-from workflows.post_to_slack import PostToSlack
+from frinx.workers.http_workers.http_workers import Http
+from frinx.workflows.http_workflows.post_to_slack import PostToSlack
 from frinx.common.logging import logging_common
 from frinx.common.logging.logging_common import LoggerConfig
 from frinx.common.logging.logging_common import Root
@@ -19,7 +19,7 @@ from frinx.common.frinx_rest import CONDUCTOR_HEADERS
 
 
 def register_tasks(conductor_client):
-    HTTPWorker().register(conductor_client)
+    Http().register(conductor_client)
 
 
 def register_workflows():
