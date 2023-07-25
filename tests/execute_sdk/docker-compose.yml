@@ -9,7 +9,7 @@ services:
       - spring_searchDatasource_url="jdbc:postgresql://postgres:5432/conductor"
       - conductor_externalPayloadStorage_postgres_url="jdbc:postgres://postgresql:5432/conductor"
       - CONDUCTOR_EXTERNALPAYLOADSTORAGE_POSTGRES_CONDUCTORURL=http://conductor-server:8080
-      - LOGGING_LEVEL_ROOT=DEBUG
+      - LOGGING_LEVEL_ROOT=INFO
     healthcheck:
       test: curl -I -X GET http://localhost:8080/health
       interval: 10s
@@ -43,7 +43,9 @@ services:
       conductor-server:
         condition: service_healthy
     environment:
-      CONDUCTOR_URL_BASE: "http://localhost:8080/api"
+      CONDUCTOR_URL_BASE: "http://127.0.0.1:8080/api"
+      CONDUCTOR_POLL_INTERVAL: 0.1
+      CONDUCTOR_THREAD_COUNT: 50
     healthcheck:
       test: curl -X GET http://localhost:8000/metrics
       interval: 10s

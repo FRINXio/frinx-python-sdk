@@ -57,9 +57,9 @@ def main() -> None:
 
     conductor_client = FrinxConductorWrapper(
         server_url=CONDUCTOR_URL_BASE,
-        polling_interval=0.1,
-        max_thread_count=50,
-        headers=CONDUCTOR_HEADERS.__dict__,
+        polling_interval=float(os.environ.get('CONDUCTOR_POLL_INTERVAL', 0.1)),
+        max_thread_count=int(os.environ.get('CONDUCTOR_THREAD_COUNT', 50)),
+        headers=dict(CONDUCTOR_HEADERS),
     )
 
     register_tasks(conductor_client)

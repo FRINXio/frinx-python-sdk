@@ -2,6 +2,8 @@ import random
 import time
 from typing import Optional
 
+from pydantic import validator
+
 from frinx.common.conductor_enums import TaskResultStatus
 from frinx.common.type_aliases import DictAny
 from frinx.common.type_aliases import ListAny
@@ -36,8 +38,8 @@ class TestWorker(ServiceWorkersImpl):
             )
 
     class Sleep(WorkerImpl):
-        DEFAULT_SLEEP = 10
-        MAX_SLEEP = 600
+        sleep = 10
+        MAX_SLEEP_TIME = 600
 
         class WorkerDefinition(TaskDefinition):
             name: str = 'TEST_sleep'
@@ -47,24 +49,26 @@ class TestWorker(ServiceWorkersImpl):
             response_timeout_seconds: int = 600
 
         class WorkerInput(TaskInput):
-            time: int | None = 10
+            time: Optional[int]
+
+            @validator('time')
+            def time_validator(cls, value: int) -> int:
+                if not 0 <= value <= TestWorker.Sleep.MAX_SLEEP_TIME:
+                    raise ValueError(f'Invalid sleep time, must be > 0 and < {TestWorker.Sleep.MAX_SLEEP_TIME}')
+                return value
 
         class WorkerOutput(TaskOutput):
             time: int
 
         def execute(self, worker_input: WorkerInput) -> TaskResult[WorkerOutput]:
-            sleep = worker_input.time if worker_input.time else self.DEFAULT_SLEEP
-            if sleep < 0 or sleep > self.MAX_SLEEP:
-                return TaskResult(
-                    status=TaskResultStatus.FAILED,
-                    logs=['Invalid sleep time, must be > 0 and < 600'],
-                )
+            if worker_input.time is not None:
+                self.sleep = worker_input.time
 
-            time.sleep(sleep)
+            time.sleep(self.sleep)
             return TaskResult(
                 status=TaskResultStatus.COMPLETED,
                 logs=['Sleep worker invoked. Sleeping'],
-                output=self.WorkerOutput(time=sleep)
+                output=self.WorkerOutput(time=self.sleep)
             )
 
     class DynamicForkGenerator(WorkerImpl):

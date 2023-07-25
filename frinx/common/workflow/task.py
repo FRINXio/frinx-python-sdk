@@ -124,7 +124,7 @@ class DynamicForkTaskFromDefInputParameters(BaseModel):
         validate_all = True
 
     @root_validator(pre=True)
-    def check_input_values(cls, values: dict[str, Any]) -> Any:  # noqa: N805
+    def check_input_values(cls, values: dict[str, Any]) -> Any:
         values['dynamic_tasks'] = values['dynamic_tasks'].__fields__['name'].default
         return values
 
@@ -134,7 +134,7 @@ class DynamicForkArraysTaskFromDefInputParameters(BaseModel):
     fork_task_inputs: list[dict[object, str]] | None | str = []
 
     @root_validator(pre=True)
-    def check_input_values(cls, values: dict[str, Any]) -> Any:  # noqa: N805
+    def check_input_values(cls, values: dict[str, Any]) -> Any:
         wf_def_input_params = list(values['fork_task_name'].WorkflowInput.__fields__.keys())
         fork_task_inputs = values['fork_task_inputs']
 
@@ -213,7 +213,7 @@ class InlineTaskInputParameters(BaseModel):
         super().__init__(**data)
 
     @validator('expression', always=True)
-    def expression_in_function(cls, expression: str) -> str:  # noqa: N805
+    def expression_in_function(cls, expression: str) -> str:
         if not expression.startswith('function'):
             expression = f'function e() {{ {expression} }} e();'
         return expression
@@ -295,7 +295,7 @@ class StartWorkflowTaskFromDefInputParameters(BaseModel):
     correlation_id: str | None = Field(alias='correlationId')
 
     @root_validator(pre=True)
-    def check_input_values(cls, values: dict[str, Any]) -> dict[str, Any]:  # noqa: N805
+    def check_input_values(cls, values: dict[str, Any]) -> dict[str, Any]:
         wf_def_input = list(values['workflow'].WorkflowInput.__fields__.keys())
         wf_input = list(values['input'].keys())
         if not bool(set(wf_input) & set(wf_def_input)):
@@ -429,7 +429,7 @@ class SubWorkflowTask(WorkflowTaskImpl):
     input_parameters: SubWorkflowInputParameters
 
     @root_validator(pre=True)
-    def check_input_values(cls, values: dict[str, Any]) -> dict[str, Any]:  # noqa: N805
+    def check_input_values(cls, values: dict[str, Any]) -> dict[str, Any]:
         sub_wf_def = values['sub_workflow_param']
         worker_inputs = values['input_parameters'].dict()
         match sub_wf_def:
@@ -471,7 +471,7 @@ class SimpleTask(WorkflowTaskImpl):
     input_parameters: SimpleTaskInputParameters
 
     @root_validator(pre=True)
-    def check_input_values(cls, values: dict[str, Any]) -> dict[str, Any]:  # noqa: N805
+    def check_input_values(cls, values: dict[str, Any]) -> dict[str, Any]:
         task_def = values['name']
         worker_inputs = values['input_parameters'].dict()
 
