@@ -37,7 +37,7 @@ class TaskResult(BaseModel, Generic[TO]):
         allow_population_by_field_name = True
 
     @validator('logs', always=True)
-    def validate_logs(cls, logs: str | list[str]) -> list[str]: # noqa: 805
+    def validate_logs(cls, logs: str | list[str]) -> list[str]:
         match logs:
             case list():
                 return logs

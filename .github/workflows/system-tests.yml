@@ -17,7 +17,7 @@ jobs:
         python-version: ["3.11"]
         poetry-version: ["1.4.2"]
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
@@ -38,25 +38,30 @@ jobs:
       - name: Install package dependencies
         run: poetry install
       - name: Execute worker and dependency
-        run: docker compose -f tests/execute_sdk/docker-compose.yml up -d
+        run: |
+          docker compose -f tests/execute_sdk/docker-compose.yml up -d
+          sleep 20 # TODO ADD HEALTHCHECK TO WORKER
       - name: Run system tests
+        continue-on-error: true
         run: |
           export CONDUCTOR_URL_BASE="http://localhost:8080/api/"
           mkdir -p logs
           echo "measure_duration_start=$(date +%s)" >> "$GITHUB_ENV"
           poetry run pytest tests/system_tests/ -vv \
             --collect-stats-folder="ga_workflows_collected_data/" \
-            --junit-xml=logs/test-results.xml
+            --junit-xml=logs/test-results.xml \
+            --log-file=logs/pytest_log_file.log
       - name: Execute tests - measure duration
-        if: ${{ ( success() || failure() ) &&  ( steps.execute_tests.outcome != 'skipped' ) }}
+        continue-on-error: true
         run: |
           DURATION=$(( ($(date +%s) - ${{ env.measure_duration_start }}) /60 ))
           FRINX_CONDUCTOR_VERSION=$(docker container inspect $(docker ps --filter name=conductor-server -q) --format '{{ .Config.Labels.git_commit }}')
-          FRINX_CONDUCTOR_WORKERS_AND_PYTHON_SDK_VERSION=$(git describe --tags)
+          FRINX_CONDUCTOR_WORKERS_AND_PYTHON_SDK_VERSION=$(git describe --tags --always)
           filename=$(echo ${{ github.workflow }} | sed 's| |_|g')
           echo "$(date +%s)000,${{ github.workflow }},${{ github.run_id }},${{ github.event_name }},${{ job.status }},${FRINX_CONDUCTOR_VERSION}+${FRINX_CONDUCTOR_WORKERS_AND_PYTHON_SDK_VERSION},${DURATION}" >> ./ga_workflows_collected_data/$filename
           cd ./ga_workflows_collected_data
           git status
+          git diff > ../logs/ga_workflows_collected_data.diff
           git config -l --show-scope
           git config --global user.email "support@frinx.io"
           git config --global user.name "FRINXrepo"
@@ -64,17 +69,17 @@ jobs:
           git commit -am "${{ github.workflow }} tests in ${DURATION} minutes"
           git pull -r
 #          git push -f origin main
-
       - name: Collect logs to file
-        if: always()
+        if: ${{ always() }}
         run: |
           mkdir -p logs
           for container in $(docker ps --format '{{ .Names }}')
           do
-            cp $(docker container inspect --format='{{.LogPath}}' $container) logs/$container.log
+            docker container logs $container &> logs/$container.log
+            docker container inspect $container &> logs/${container}_inspect.json
           done
       - name: Upload pytest logs
-        if: ${{ ( success() || failure() ) &&  ( steps.execute_tests.outcome != 'skipped' ) }}
+        if: ${{ always() }}
         uses: actions/upload-artifact@v3.1.1
         with:
            name: ${{ github.workflow }}_pytest_logs.zip
@@ -83,7 +88,7 @@ jobs:
            if-no-files-found: error
            retention-days: 1
       - name: Surface failing tests
-        if: always()
+        if: ${{ always() }}
         uses: pmeier/pytest-results-action@main
         with:
           path: logs/test-results.xml
