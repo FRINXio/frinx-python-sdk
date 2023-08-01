@@ -1,78 +1,77 @@
-import json
-from json import JSONDecodeError
-from typing import Any
-from typing import Optional
-
 import requests
-from pydantic import BaseModel
-from pydantic import Field
-from pydantic import ValidationError
-from pydantic import validator
-from pydantic.networks import AnyHttpUrl
-from requests.exceptions import RequestException
 
-from frinx.services.http_service.enums import HTTPMethod
-from frinx.services.http_service.exceptions import InvalidJSONError
-
-TERMINAL_ERROR = -1
+from frinx.common.conductor_enums import ContentType
+from frinx.common.type_aliases import DictAny
+from frinx.common.util import is_json_valid
+from frinx.common.util import is_xml_valid
+from frinx.common.worker.task_def import TaskInput
 
 
-class HTTPInput(BaseModel):
-
-    class Config:
-        use_enum_values = True
-        allow_population_by_field_name = True
-        arbitrary_types_allowed = True
-
-    method: HTTPMethod = Field(...)
-    url: AnyHttpUrl = Field(..., alias='uri')
-    headers: dict[str, str] = Field(default={})
-    data: dict[str, Any] | list[Any] | str | None = Field(default=None, alias='body')
-    params: dict[str, str] = Field(default={}, alias='query_string_parameters')
-    cookies: dict[str, str] | None = Field(default=None)
-    # TODO: validate if float is positive and less than 5 min
-    timeout: float | tuple[float, float] | None = Field(default=None)
-
-    @classmethod
-    @validator('data')
-    def encode_decode(cls, data: dict[str, Any] | list[Any] | str | None) -> Optional[
-    dict[str, Any] | list[Any] | str | None]:
-        if data:
-            try:
-               json.dumps(json.loads(data)) if isinstance(data, str) else json.dumps(data)
-            except JSONDecodeError as err:
-                raise InvalidJSONError(err.args)
-        return data
+class IncompatibleFormError(TypeError):
+    def __init__(self) -> None:
+        self.msg = 'Request body format is incompatible with Content-Type header!'
+        super().__init__(self.msg)
 
 
-class HTTPOutput(BaseModel):
+# TODO: clean up type-hints about parameters and required method and uri
+def http_task(http_input: DictAny | TaskInput) -> requests.Response:
+    # TODO: complete ORM mechanism to connect http_input and requests APIs
+    if isinstance(http_input, TaskInput):
+        http_input = http_input.dict(by_alias=True)
 
-    class Config:
-        min_anystr_length = 1
+    # TODO: find out better way, perhaps merging dicts via logical condiction
+    kwargs = {
+        'params': http_input.get('params', None),
+        'data': http_input.get('data', None),
+        'json': http_input.get('json', None),
+        'headers': http_input.get('headers', {}),
+        'cookies': http_input.get('colkies', None),
+        'files': http_input.get('files', None),
+        'auth': http_input.get('auth', None),
+        'timeout': http_input.get('timeout', None),
+        'allow_redirects': http_input.get('allow_redirects', None),
+        'proxies': http_input.get('proxies', None),
+        'verify': http_input.get('verify', None),
+        'stream': http_input.get('stream', None),
+        'cert': http_input.get('cert', None),
+    }
 
-    code: int
-    data: dict[str, Any]
-    errors: list[str]
-    logs: Optional[list[str]] | Optional[str] | None = None
-    url: Optional[str] | None = None
+    match http_input.get('body', None):
+        case dict() | list():
+            kwargs['json'] = http_input['body']
+        case str():
+            kwargs['data'] = http_input['body']
 
+    match (http_input.get('connectTimeout', None), http_input.get('readTimeout', None)):
+        case int(), int():
+            kwargs['timeout'] = (http_input['connectTimeout'], http_input['readTimeout'])
+        case int(), None:
+            kwargs['timeout'] = http_input['connectTimeout']
 
-def http_task(http_input: HTTPInput | dict[str, Any]) -> HTTPOutput:
-    if isinstance(http_input, dict):
-        try:
-            http_input = HTTPInput(**http_input)
-        except ValidationError as err:
-            return HTTPOutput(code=TERMINAL_ERROR, data={}, errors=[json.dumps(e) for e in err.errors()])
+    if http_input.get('contentType', None):
+        kwargs['headers']['Content-Type'] = http_input['contentType']
+        # TODO: complete body validation by contentType
+        match http_input['contentType']:
+            case ContentType.APPLICATION_JSON:
+                if not is_json_valid(http_input['body']):
+                    raise IncompatibleFormError()
+            case ContentType.APPLICATION_XML:
+                if not is_xml_valid(http_input['body']):
+                    raise IncompatibleFormError()
+            case ContentType.APPLICATION_X_WWW_FORM_URLENCODED:
+                ...
+            case ContentType.MULTIPART_FROM_DATA:
+                ...
+            case ContentType.TEXT_CSV:
+                ...
+            case ContentType.TEXT_PLAIN:
+                ...
+            case ContentType.TEXT_XML:
+                if not is_xml_valid(http_input['body']):
+                    raise IncompatibleFormError()
 
-    try:
-        response = requests.request(**http_input.dict())
-    except RequestException as err:
-        return HTTPOutput(code=TERMINAL_ERROR, data={}, errors=[str(err)])
+    if http_input.get('accept', None):
+        kwargs['headers']['Accept'] = http_input['accept']
 
-    return HTTPOutput(
-        logs=f'< {http_input.method} {response.url} | status: {response.status_code} {response.reason} >',
-        errors=[response.reason] if not response.ok else [],
-        code=response.status_code,
-        url=response.url,
-        data={'data': response.text}
-    )
+    
+    return requests.request(http_input['method'], http_input['uri'] or http_input['url'], **kwargs)

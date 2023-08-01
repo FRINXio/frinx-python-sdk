@@ -5,7 +5,7 @@ from frinx.common.workflow.task import SimpleTaskInputParameters
 from frinx.common.workflow.workflow import FrontendWFInputFieldType
 from frinx.common.workflow.workflow import WorkflowImpl
 from frinx.common.workflow.workflow import WorkflowInputField
-from frinx.workers.http_workers.http_workers import Http
+from frinx.workers.http_workers.http_workers import HTTPWorkersService
 
 
 class HTTPWorkflowService(ServiceWorkflowsImpl):
@@ -76,7 +76,7 @@ class HTTPWorkflowService(ServiceWorkflowsImpl):
 
             self.tasks.append(
                 SimpleTask(
-                    name=Http.HttpTask,
+                    name=HTTPWorkersService.GenericHTTPWorker,
                     task_reference_name='http_task',
                     input_parameters=SimpleTaskInputParameters(http_request=http_request),
                 )

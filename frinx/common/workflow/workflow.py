@@ -160,3 +160,4 @@ class WorkflowImpl(BaseModel, ABC):
         allow_population_by_field_name = True
         validate_assignment = True
         validate_all = True
+        use_enum_values = True
