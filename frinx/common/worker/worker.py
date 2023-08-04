@@ -19,7 +19,7 @@ from frinx.common.telemetry.common import record_task_execute_time
 from frinx.common.telemetry.metrics import Metrics
 from frinx.common.type_aliases import DictAny
 from frinx.common.util import jsonify_description
-from frinx.common.util import remove_empty_elements_from_dict
+from frinx.common.util import remove_empty_elements_from_root_dict
 from frinx.common.util import snake_to_camel_case
 from frinx.common.worker.task_def import BaseTaskdef
 from frinx.common.worker.task_def import DefaultTaskDefinition
@@ -140,7 +140,7 @@ class WorkerImpl(ABC):
 
         if execution_properties.exclude_empty_inputs:
             logger.debug('Worker input data before removing empty elements: %s:', input_data)
-            input_data = remove_empty_elements_from_dict(task['inputData'])
+            input_data = remove_empty_elements_from_root_dict(task['inputData'])
             logger.debug('Worker input data after removing empty elements: %s:', input_data)
 
         if execution_properties.transform_string_to_json_valid:
