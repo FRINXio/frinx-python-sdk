@@ -1,3 +1,4 @@
+import inspect
 import logging
 import time
 from abc import ABC
@@ -7,6 +8,7 @@ from json import loads as json_loads
 from typing import Any
 from typing import TypeAlias
 
+from pydantic import BaseModel
 from pydantic import ValidationError
 from pydantic.dataclasses import dataclass
 
@@ -18,6 +20,9 @@ from frinx.common.telemetry.common import increment_uncaught_exception
 from frinx.common.telemetry.common import record_task_execute_time
 from frinx.common.telemetry.metrics import Metrics
 from frinx.common.type_aliases import DictAny
+from frinx.common.type_aliases import DictStr
+from frinx.common.type_aliases import ListAny
+from frinx.common.type_aliases import ListStr
 from frinx.common.util import jsonify_description
 from frinx.common.util import remove_empty_elements_from_dict
 from frinx.common.util import snake_to_camel_case
@@ -166,7 +171,14 @@ class WorkerImpl(ABC):
     @classmethod
     def _transform_input_data_to_json(cls, input_data: DictAny) -> DictAny:
         for k, v in cls.WorkerInput.__fields__.items():
-            if v.outer_type_ == list[str] or v.outer_type_ == DictAny:
+            if inspect.isclass(v.type_):
+                if issubclass(v.type_, BaseModel) and isinstance(input_data.get(k), str):
+                    try:
+                        input_data[k] = json_loads(input_data[k])
+                    except JSONDecodeError as e:
+                        raise Exception(f'Worker input {k} is invalid JSON, {e}')
+                    
+            if v.outer_type_ in (ListAny, ListStr, DictAny, DictStr):
                 if type(input_data.get(k)) == str:
                     try:
                         input_data[k] = json_loads(str(input_data.get(k)))

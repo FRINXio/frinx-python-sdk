@@ -1,20 +1,15 @@
 from typing import Any
-from typing import Optional
 
 from pydantic import AnyHttpUrl
-from pydantic import Field
 from pydantic import NonNegativeFloat
 
-from frinx.common.conductor_enums import ContentType
-from frinx.common.conductor_enums import HttpMethod
 from frinx.common.conductor_enums import TaskResultStatus
 from frinx.common.type_aliases import DictAny
 from frinx.common.type_aliases import DictStr
 from frinx.common.type_aliases import ListAny
 from frinx.common.type_aliases import ListStr
 from frinx.common.util import cookie_jar_to_dict
-
-# from frinx.common.util import snake_to_camel_case
+from frinx.common.util import snake_to_camel_case
 from frinx.common.worker.service import ServiceWorkersImpl
 from frinx.common.worker.task_def import TaskDefinition
 from frinx.common.worker.task_def import TaskExecutionProperties
@@ -23,6 +18,9 @@ from frinx.common.worker.task_def import TaskOutput
 from frinx.common.worker.task_result import TaskResult
 from frinx.common.worker.worker import WorkerImpl
 from frinx.services.http_service import http_service
+from frinx.services.http_service.enums import ContentType
+from frinx.services.http_service.enums import HttpMethod
+from frinx.workers.http_workers.util import BasicAuth
 
 
 class HTTPWorkersService(ServiceWorkersImpl):
@@ -37,47 +35,49 @@ class HTTPWorkersService(ServiceWorkersImpl):
             response_timeout_seconds: int = 360
 
         class ExecutionProperties(TaskExecutionProperties):
+            transform_string_to_json_valid: bool = True
             exclude_empty_inputs: bool = True
         
         class WorkerInput(TaskInput):
             uri: AnyHttpUrl
             method: HttpMethod
-            # OPTIONAL WITH DEFAULTS
-            content_type: ContentType = Field(default=ContentType.APPLICATION_JSON, alias='contentType')
-            connect_timeout: NonNegativeFloat = Field(default=360, alias='connectTimeout')
-            headers: DictStr | None = {}
-            accept: ContentType | None = None
-            read_timeout: NonNegativeFloat | None = Field(default=None, alias='readTimeout')
+            basic_auth: BasicAuth | None = None
+            content_type: ContentType | None = None
             body: DictAny | ListAny | str | None = None
-            cookies: DictStr | None = None
+            read_timeout: NonNegativeFloat | None = None
+            connect_timeout: NonNegativeFloat = 360
+            headers: DictStr | None = {}
+            cookies: DictStr | None = {}
 
             class Config(TaskInput.Config):
+                alias_generator = snake_to_camel_case
+                allow_population_by_field_name = True
+                arbitrary_types_allowed = True
                 use_enum_values = True
-                # ERROR: Required dynamic aliases disallowed  [pydantic-alias]
-                # to avoid the error use static aliases instead of alias_generator
-                # alias_generator = snake_to_camel_case
 
         class WorkerOutput(TaskOutput):
-            status_code: int = Field(..., alias='statusCode')
+            status_code: int
             response: DictAny | ListAny | str
             cookies: DictAny
-            logs: Optional[ListStr] | Optional[str]
+            logs: ListStr | str
 
             class Config(TaskOutput.Config):
+                alias_generator = snake_to_camel_case
                 allow_population_by_field_name = True
                 min_anystr_length = 1
 
         def execute(self, worker_input: WorkerInput) -> TaskResult[Any]:
             response = http_service.http_task(worker_input)
-            logs = f'{worker_input.method} {worker_input.uri} | status: {response.status_code} {response.reason}'
+            logs = f'{worker_input.method} {worker_input.uri} {response.status_code} {response.reason}'
+            logs = str(worker_input)
 
             return TaskResult(
+                logs=logs,
                 status=TaskResultStatus.COMPLETED if response.ok else TaskResultStatus.FAILED,
                 output=self.WorkerOutput(
                     status_code=response.status_code,
                     response=response.text,
                     cookies=cookie_jar_to_dict(response.cookies),
                     logs=logs
-                ),
-                logs=logs
+                )
             )
