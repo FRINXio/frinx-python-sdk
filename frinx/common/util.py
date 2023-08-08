@@ -1,7 +1,11 @@
 import json
 from typing import Any
 
+from requests import JSONDecodeError
+from requests import Response
+
 from frinx.common.type_aliases import DictAny
+from frinx.common.type_aliases import ListAny
 
 
 def jsonify_description(
@@ -40,3 +44,10 @@ def normalize_base_url(url: str) -> str:
 
 def remove_empty_elements_from_dict(any_dict: DictAny) -> DictAny:
     return dict((k, v) for k, v in any_dict.items() if v)
+
+
+def parse_response(response: Response) -> DictAny | ListAny | str:
+    try:
+        return response.json()  # type: ignore[no-any-return]
+    except JSONDecodeError:
+        return response.text
