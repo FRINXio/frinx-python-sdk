@@ -8,7 +8,7 @@ from frinx.common.type_aliases import DictAny
 from frinx.common.type_aliases import DictStr
 from frinx.common.type_aliases import ListAny
 from frinx.common.type_aliases import ListStr
-from frinx.common.util import cookie_jar_to_dict
+from frinx.common.util import parse_response
 from frinx.common.util import snake_to_camel_case
 from frinx.common.worker.service import ServiceWorkersImpl
 from frinx.common.worker.task_def import TaskDefinition
@@ -28,8 +28,8 @@ class HTTPWorkersService(ServiceWorkersImpl):
     class GenericHTTPWorker(WorkerImpl):
 
         class WorkerDefinition(TaskDefinition):
-            name: str = 'generic_HTTP_worker'
-            description: str = 'Generic HTTP worker.'
+            name: str = 'HTTP_task'
+            description: str = 'Generic http task'
             labels: ListAny = ['SIMPLE']
             timeout_seconds: int = 360
             response_timeout_seconds: int = 360
@@ -69,15 +69,14 @@ class HTTPWorkersService(ServiceWorkersImpl):
         def execute(self, worker_input: WorkerInput) -> TaskResult[Any]:
             response = http_service.http_task(worker_input)
             logs = f'{worker_input.method} {worker_input.uri} {response.status_code} {response.reason}'
-            logs = str(worker_input)
 
             return TaskResult(
                 logs=logs,
                 status=TaskResultStatus.COMPLETED if response.ok else TaskResultStatus.FAILED,
                 output=self.WorkerOutput(
                     status_code=response.status_code,
-                    response=response.text,
-                    cookies=cookie_jar_to_dict(response.cookies),
+                    response=parse_response(response),
+                    cookies=response.cookies.get_dict(),    # type: ignore[no-untyped-call]
                     logs=logs
                 )
             )
