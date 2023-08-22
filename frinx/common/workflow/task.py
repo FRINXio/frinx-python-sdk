@@ -125,6 +125,7 @@ class DynamicForkTaskFromDefInputParameters(BaseModel):
 
     @root_validator(pre=True)
     def check_input_values(cls, values: dict[str, Any]) -> Any:
+        # FIXME: AttributeError: 'str' object has no attribute '__fields__'
         values['dynamic_tasks'] = values['dynamic_tasks'].__fields__['name'].default
         return values
 
