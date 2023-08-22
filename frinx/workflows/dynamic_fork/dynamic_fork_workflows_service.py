@@ -13,10 +13,9 @@ from frinx.common.workflow.task import DecisionTaskInputParameters
 from frinx.common.workflow.task import DynamicForkTask
 from frinx.common.workflow.task import DynamicForkTaskInputParameters
 from frinx.common.workflow.task import JoinTask
-from frinx.workers.wf_input_handlers.wf_input_handlers_service import WFInputHandlersService
+from frinx.workers.utils_workers.utils_service import UtilsService
 
 
-# TODO: refactor
 class DynamicForkWFService(ServiceWorkflowsImpl):
 
     class DynamicFork(WorkflowImpl):
@@ -58,12 +57,8 @@ class DynamicForkWFService(ServiceWorkflowsImpl):
             status: WorkflowStatus
 
         def workflow_builder(self, workflow_inputs: WorkflowInput) -> None:
-            # NOTE: becouse output object wrapper in conductor frontend a.k.a. 'result' (Object)
-            # can't be returned like origin type, validation do worker instead of lambda-task
-            # e.g. Array always returns like Object
-
             validation = SimpleTask(
-                name=WFInputHandlersService.ForkJoinWFInputHandler,
+                name=UtilsService.ForkJoinInputValidator,
                 task_reference_name='validation',
                 input_parameters=SimpleTaskInputParameters(
                     dynamic_tasks=workflow_inputs.dynamic_tasks.wf_input,
@@ -94,33 +89,21 @@ class DynamicForkWFService(ServiceWorkflowsImpl):
                 )
             )
 
-            join = JoinTask(
-                name='joinTask',
-                task_reference_name='join'
-            )
-
-            def _js_case_expression() -> str:
-                return """
-                $.errors ? 'termination' : 'default'
-                """
-
             decision = DecisionTask(
                 name='decisionTask',
                 task_reference_name='decision',
                 default_case=[
                     dynamic_fork,
-                    join,
+                    JoinTask(
+                        name='joinTask',
+                        task_reference_name='join'
+                    )
                 ],
-                decision_cases={
-                    'termination': [termination]
-                },
-                case_expression=_js_case_expression(),
+                decision_cases={'termination': [termination]},
+                case_expression='$.errors ? "termination" : "default"',
                 input_parameters=DecisionTaskInputParameters(
                     errors=validation.output_ref('errors')
                 )
             )
 
-            self.tasks = [
-                validation,
-                decision,
-            ]
+            self.tasks = [validation, decision]

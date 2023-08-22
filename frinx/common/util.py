@@ -1,11 +1,14 @@
 import json
 from typing import Any
 
+from pydantic import BaseModel
+from pydantic import ValidationError
 from requests import JSONDecodeError
 from requests import Response
 
 from frinx.common.type_aliases import DictAny
 from frinx.common.type_aliases import ListAny
+from frinx.common.type_aliases import ListStr
 
 
 def jsonify_description(
@@ -51,3 +54,49 @@ def parse_response(response: Response) -> DictAny | ListAny | str:
         return response.json()  # type: ignore[no-any-return]
     except JSONDecodeError:
         return response.text
+
+
+def json_parse(errors: list | None = None, **kwargs: str) -> tuple[str | None, ListStr]:
+    """
+    Safely parse json, returns tuple of object and errors list.
+    """
+
+    FORMAT_ERR_MSG = lambda obj, msg: f'Object `{obj}`: ({msg})'
+    json_string, object_name = next(iter(kwargs.values())), next(iter(kwargs.keys()))
+    errors = [] if errors is None else errors
+
+    if not len(json_string):
+        errors.append(FORMAT_ERR_MSG(object_name, 'Cannot parse empty string.'))
+        return None, errors
+    try:
+        return json.loads(json_string), errors
+    except json.JSONDecodeError as e:
+        errors.append(FORMAT_ERR_MSG(object_name, f'Not JSON valid. {e.args[0]}.'))
+        return None, errors
+
+
+def validate_structure(obj: DictAny, model: BaseModel, *, idx: int | None = None, 
+properties: dict = {}, errors: list | None = None) -> list[str]:
+    """
+    Validate structure of object based on pydantic model, return errors if occures.
+    """
+
+    FORMAT_ERR_MSG = lambda prop, obj, msg:\
+        f'Property `{prop}` of `{obj}{{}}`, ({msg})'.format(f'[{idx}]' if idx or idx==0 else '')
+    errors = [] if errors is None else errors
+
+    try:
+        model.parse_obj(obj)
+    except ValidationError as validation_err:
+         # TODO: how to handle strict and extra ?
+         # maybe skip and print in log as WARNING (extra)
+         # NOTE: try to use pydantic strict types if needed, v1 doesn't support BaseConfig.strict
+        for err in validation_err.errors():
+            errors.append(FORMAT_ERR_MSG(err['loc'][0], model.__name__, err['msg']))
+
+    for key, value in properties.items():
+        if obj.get(key, None) != value:
+            errors.append(
+                FORMAT_ERR_MSG(key, model.__name__, f'expected value `{value}`, get `{obj[key]}`')
+            )
+    return errors
