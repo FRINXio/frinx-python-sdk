@@ -1,18 +1,18 @@
 from frinx.common.conductor_enums import WorkflowStatus
 from frinx.common.type_aliases import ListStr
 from frinx.common.workflow.service import ServiceWorkflowsImpl
-from frinx.common.workflow.task import TerminateTask
-from frinx.common.workflow.task import TerminateTaskInputParameters
-from frinx.common.workflow.workflow import FrontendWFInputFieldType
-from frinx.common.workflow.workflow import WorkflowImpl
-from frinx.common.workflow.workflow import WorkflowInputField
-from frinx.common.workflow.task import SimpleTask
-from frinx.common.workflow.task import SimpleTaskInputParameters
 from frinx.common.workflow.task import DecisionTask
 from frinx.common.workflow.task import DecisionTaskInputParameters
 from frinx.common.workflow.task import DynamicForkTask
 from frinx.common.workflow.task import DynamicForkTaskInputParameters
 from frinx.common.workflow.task import JoinTask
+from frinx.common.workflow.task import SimpleTask
+from frinx.common.workflow.task import SimpleTaskInputParameters
+from frinx.common.workflow.task import TerminateTask
+from frinx.common.workflow.task import TerminateTaskInputParameters
+from frinx.common.workflow.workflow import FrontendWFInputFieldType
+from frinx.common.workflow.workflow import WorkflowImpl
+from frinx.common.workflow.workflow import WorkflowInputField
 from frinx.workers.utils_workers.utils_service import UtilsService
 
 

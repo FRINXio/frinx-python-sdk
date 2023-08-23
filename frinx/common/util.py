@@ -7,6 +7,7 @@ from requests import JSONDecodeError
 from requests import Response
 
 from frinx.common.type_aliases import DictAny
+from frinx.common.type_aliases import DictStr
 from frinx.common.type_aliases import ListAny
 from frinx.common.type_aliases import ListStr
 
@@ -56,35 +57,57 @@ def parse_response(response: Response) -> DictAny | ListAny | str:
         return response.text
 
 
-def json_parse(errors: list | None = None, **kwargs: str) -> tuple[str | None, ListStr]:
+def json_parse(errors: ListStr | None = None, **kwargs: str) -> tuple[ListAny | DictAny | None, ListStr]:
     """
-    Safely parse json, returns tuple of object and errors list.
-    """
+    Parse json, returns object and errors list as tuple. 
 
-    FORMAT_ERR_MSG = lambda obj, msg: f'Object `{obj}`: ({msg})'
+    args:
+        - errors: (optional), list of error messages, default is empty list
+    kwargs:
+        - <object_name>=<string>: name of json-object and json-formatted-string (optional,
+            but neccessary for functionality)
+            e.g.: ip_addresses='["127.0.0.1", "127.0.0.2]', this approach enables to format to error
+            messages this way: 'Object `ip_addresses`: (Not JSON valid. ... .)'
+    returns:
+        parsed-json-object, errors-list
+    """
+    def _format_err_msg(obj: str, msg: str) -> str:
+        return f'Object `{obj}`: ({msg})'
+    
     json_string, object_name = next(iter(kwargs.values())), next(iter(kwargs.keys()))
     errors = [] if errors is None else errors
 
     if not len(json_string):
-        errors.append(FORMAT_ERR_MSG(object_name, 'Cannot parse empty string.'))
+        errors.append(_format_err_msg(object_name, 'Cannot parse empty string.'))
         return None, errors
     try:
         return json.loads(json_string), errors
     except json.JSONDecodeError as e:
-        errors.append(FORMAT_ERR_MSG(object_name, f'Not JSON valid. {e.args[0]}.'))
+        errors.append(_format_err_msg(object_name, f'Not JSON valid. {e.args[0]}.'))
         return None, errors
 
 
-def validate_structure(obj: DictAny, model: BaseModel, *, idx: int | None = None, 
-properties: dict = {}, errors: list | None = None) -> list[str]:
+def validate_structure(obj: DictAny, model: type[BaseModel], *, idx: int | None = None, 
+properties: DictStr = {}, errors: ListStr | None = None) -> list[str]:
     """
     Validate structure of object based on pydantic model, return errors if occures.
+
+    args:
+        obj: (required), python object (parsed json) to compare with pydantic model
+        model: (required), pydantic model to use as structure template for obj
+    kwargs:
+        idx: (optional), index represents position of nested object in list, used in _format_err_msg
+        properties: (optional), dictionary of model properties and expected values of properties,
+            enables value checking of obj
+        errors: (optional), list of error messages, default is empty list
+    returns:
+        errors-list
     """
 
-    FORMAT_ERR_MSG = lambda prop, obj, msg:\
-        f'Property `{prop}` of `{obj}{{}}`, ({msg})'.format(f'[{idx}]' if idx or idx==0 else '')
+    def _format_err_msg(prop: str, obj: str, msg: str) -> str:
+        return f'Property `{prop}` of `{obj}{{}}`, ({msg})'.format(f'[{idx}]' if idx or idx == 0 else '')
+    
     errors = [] if errors is None else errors
-
     try:
         model.parse_obj(obj)
     except ValidationError as validation_err:
@@ -92,11 +115,11 @@ properties: dict = {}, errors: list | None = None) -> list[str]:
          # maybe skip and print in log as WARNING (extra)
          # NOTE: try to use pydantic strict types if needed, v1 doesn't support BaseConfig.strict
         for err in validation_err.errors():
-            errors.append(FORMAT_ERR_MSG(err['loc'][0], model.__name__, err['msg']))
+            errors.append(_format_err_msg(str(err['loc'][0]), model.__class__.__name__, err['msg']))
 
     for key, value in properties.items():
         if obj.get(key, None) != value:
             errors.append(
-                FORMAT_ERR_MSG(key, model.__name__, f'expected value `{value}`, get `{obj[key]}`')
+                _format_err_msg(key, model.__class__.__name__, f'expected value `{value}`, get `{obj[key]}`')
             )
     return errors

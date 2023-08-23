@@ -2,22 +2,22 @@ from typing import Any
 
 from pydantic import BaseModel
 from pydantic import Extra
-from pydantic.types import StrictStr
 from pydantic.types import StrictInt
+from pydantic.types import StrictStr
 
-from frinx.common.type_aliases import ListStr
-from frinx.common.type_aliases import ListAny
-from frinx.common.type_aliases import DictAny
-from frinx.common.worker.service import ServiceWorkersImpl
-from frinx.common.worker.task_result import TaskResult
 from frinx.common.conductor_enums import TaskResultStatus
-from frinx.common.worker.worker import WorkerImpl
+from frinx.common.type_aliases import DictAny
+from frinx.common.type_aliases import ListAny
+from frinx.common.type_aliases import ListStr
+from frinx.common.util import json_parse
+from frinx.common.util import snake_to_camel_case
+from frinx.common.util import validate_structure
+from frinx.common.worker.service import ServiceWorkersImpl
 from frinx.common.worker.task_def import TaskDefinition
 from frinx.common.worker.task_def import TaskInput
 from frinx.common.worker.task_def import TaskOutput
-from frinx.common.util import json_parse
-from frinx.common.util import validate_structure
-from frinx.common.util import snake_to_camel_case
+from frinx.common.worker.task_result import TaskResult
+from frinx.common.worker.worker import WorkerImpl
 
 
 # TODO: move to other file, e.g. local/util.py
@@ -26,7 +26,7 @@ class DynamicTask(BaseModel):
         name: StrictStr
         version: StrictInt
 
-    class Config:
+    class Config:   # type: ignore[pydantic-alias]
         alias_generator = snake_to_camel_case
         extra = Extra.forbid
 
