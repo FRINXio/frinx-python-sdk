@@ -42,7 +42,7 @@ class UtilsService(ServiceWorkersImpl):
 
         class WorkerDefinition(TaskDefinition):
             name: str = 'JSON_parse'
-            description: str = 'Returns object from JSON or errors if occures.'
+            description: str = 'Returns object from JSON or errors if occurs.'
             labels: ListStr = ['UTILS']
 
         class WorkerInput(TaskInput):

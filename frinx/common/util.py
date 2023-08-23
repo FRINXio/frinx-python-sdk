@@ -65,7 +65,7 @@ def json_parse(errors: ListStr | None = None, **kwargs: str) -> tuple[ListAny | 
         - errors: (optional), list of error messages, default is empty list
     kwargs:
         - <object_name>=<string>: name of json-object and json-formatted-string (optional,
-            but neccessary for functionality)
+            but necessary for functionality)
             e.g.: ip_addresses='["127.0.0.1", "127.0.0.2]', this approach enables to format to error
             messages this way: 'Object `ip_addresses`: (Not JSON valid. ... .)'
     returns:
@@ -90,16 +90,16 @@ def json_parse(errors: ListStr | None = None, **kwargs: str) -> tuple[ListAny | 
 def validate_structure(obj: DictAny, model: type[BaseModel], *, idx: int | None = None, 
 properties: DictStr = {}, errors: ListStr | None = None) -> list[str]:
     """
-    Validate structure of object based on pydantic model, return errors if occures.
+    Validate structure of object based on pydantic model, return errors if occurs.
 
     args:
-        obj: (required), python object (parsed json) to compare with pydantic model
-        model: (required), pydantic model to use as structure template for obj
+        - obj: (required), python object (parsed json) to compare with pydantic model
+        - model: (required), pydantic model to use as structure template for obj
     kwargs:
-        idx: (optional), index represents position of nested object in list, used in _format_err_msg
-        properties: (optional), dictionary of model properties and expected values of properties,
+        - idx: (optional), index represents position of nested object in list, used in _format_err_msg
+        - properties: (optional), dictionary of model properties and expected values of properties,
             enables value checking of obj
-        errors: (optional), list of error messages, default is empty list
+        - errors: (optional), list of error messages, default is empty list
     returns:
         errors-list
     """
