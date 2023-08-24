@@ -5,7 +5,6 @@ from requests import JSONDecodeError
 from requests import Response
 
 from frinx.common.type_aliases import DictAny
-from frinx.common.type_aliases import ListAny
 
 
 def jsonify_description(
@@ -46,8 +45,8 @@ def remove_empty_elements_from_dict(any_dict: DictAny) -> DictAny:
     return dict((k, v) for k, v in any_dict.items() if v)
 
 
-def parse_response(response: Response) -> DictAny | ListAny | str:
+def parse_response(response: Response) -> Any:
     try:
-        return response.json()  # type: ignore[no-any-return]
+        return response.json()
     except JSONDecodeError:
         return response.text
