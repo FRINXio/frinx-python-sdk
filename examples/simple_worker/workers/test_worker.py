@@ -116,6 +116,9 @@ class TestWorker(ServiceWorkersImpl):
             )
 
     class LoremIpsum(WorkerImpl):
+
+        WORDS = ['lorem', 'ipsum', 'dolor', 'sit', 'amet', 'consectetur', 'adipiscing', 'elit']
+
         class WorkerDefinition(TaskDefinition):
             name: str = 'TEST_lorem_ipsum'
             description: str = 'testing purposes: text generator'
@@ -132,8 +135,29 @@ class TestWorker(ServiceWorkersImpl):
             text: str
             bytes: int
 
+        @classmethod
+        def generate_sentence(cls, num_words: int) -> str:
+            sentence = []
+            for i in range(num_words):
+                sentence.append(random.choice(cls.WORDS))
+            return ' '.join(sentence).capitalize() + '.'
+
+        @classmethod
+        def generate_paragraph(cls, num_sentences: int, num_words: int) -> str:
+            paragraph = []
+            for i in range(num_sentences):
+                paragraph.append(cls.generate_sentence(num_words))
+            return ' '.join(paragraph)
+
+        @classmethod
+        def generate_text(cls, num_paragraphs: int, num_sentences: int, num_words: int) -> str:
+            text = []
+            for i in range(num_paragraphs):
+                text.append(cls.generate_paragraph(num_sentences, num_words))
+            return '\n\n'.join(text)
+
         def execute(self, worker_input: WorkerInput) -> TaskResult[WorkerOutput]:
-            text = generate_text(
+            text = self.generate_text(
                 num_paragraphs=worker_input.num_paragraphs,
                 num_sentences=worker_input.num_sentences,
                 num_words=worker_input.num_words,
@@ -147,27 +171,3 @@ class TestWorker(ServiceWorkersImpl):
                     bytes=len(text.encode('utf-8'))
                 )
             )
-
-
-WORDS = ['lorem', 'ipsum', 'dolor', 'sit', 'amet', 'consectetur', 'adipiscing', 'elit']
-
-
-def generate_sentence(num_words: int) -> str:
-    sentence = []
-    for i in range(num_words):
-        sentence.append(random.choice(WORDS))
-    return ' '.join(sentence).capitalize() + '.'
-
-
-def generate_paragraph(num_sentences: int, num_words: int) -> str:
-    paragraph = []
-    for i in range(num_sentences):
-        paragraph.append(generate_sentence(num_words))
-    return ' '.join(paragraph)
-
-
-def generate_text(num_paragraphs: int, num_sentences: int, num_words: int) -> str:
-    text = []
-    for i in range(num_paragraphs):
-        text.append(generate_paragraph(num_sentences, num_words))
-    return '\n\n'.join(text)

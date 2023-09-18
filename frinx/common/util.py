@@ -5,7 +5,6 @@ from requests import JSONDecodeError
 from requests import Response
 
 from frinx.common.type_aliases import DictAny
-from frinx.common.type_aliases import ListAny
 
 
 def jsonify_description(
@@ -29,25 +28,66 @@ def jsonify_description(
 
 
 def snake_to_camel_case(string: str) -> str:
-    """Returns camelCase version of provided snake_case StrictString."""
+    """Returns camelCase version of provided snake_case string."""
     if not string:
         return ''
 
     words = string.split('_')
-    result = words[0].lower() + ''.join(n.capitalize() for n in words[1:])
-    return result
+    return words[0].lower() + ''.join(n.capitalize() for n in words[1:])
+
+
+def snake_to_kebab_case(string: str) -> str:
+    """Returns kebab-case version of provided snake_case string."""
+    if not string:
+        return ''
+
+    return string.replace('_', '-')
 
 
 def normalize_base_url(url: str) -> str:
     return url.removesuffix('/')
 
 
-def remove_empty_elements_from_dict(any_dict: DictAny) -> DictAny:
+def remove_empty_elements_from_root_dict(any_dict: DictAny) -> DictAny:
+    """
+    Removes empty elements (None, empty dictionaries, or empty lists) from a dictionary root.
+
+    Args:
+        any_dict (Dict[str, Any]): The input dictionary to be processed.
+
+    Returns:
+        Dict[str, Any]: A new dictionary with empty elements removed.
+    """
     return dict((k, v) for k, v in any_dict.items() if v)
 
 
-def parse_response(response: Response) -> DictAny | ListAny | str:
+def remove_empty_elements_from_dict(any_dict: DictAny) -> Any:
+    """
+    Recursively removes empty elements (None, empty dictionaries, or empty lists) from a dictionary.
+
+    Args:
+        any_dict (Dict[str, Any]): The input dictionary to be processed.
+
+    Returns:
+        Dict[str, Any]: A new dictionary with empty elements removed.
+    """
+    def recursive_cleanup(d: DictAny) -> Any:
+        cleaned = {}
+        for k, v in d.items():
+            match v:
+                case dict():
+                    cleaned[k] = recursive_cleanup(v)
+                case list():
+                    cleaned[k] = [item for item in v if item]
+                case _:
+                    if v:
+                        cleaned[k] = v
+        return cleaned
+    return recursive_cleanup(any_dict)
+
+
+def parse_response(response: Response) -> Any:
     try:
-        return response.json()  # type: ignore[no-any-return]
+        return response.json()
     except JSONDecodeError:
         return response.text

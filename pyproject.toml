@@ -61,6 +61,7 @@ exclude_lines = ['pragma: no cover',
 
 [tool.pyright]
 include = ['frinx']
+exclude = ['examples']
 reportGeneralTypeIssues = "none"
 
 [tool.ruff]
