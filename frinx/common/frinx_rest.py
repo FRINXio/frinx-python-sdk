@@ -1,5 +1,6 @@
 import os
 from types import MappingProxyType
+from typing import Any
 
 # RBAC CONFIGURATION
 X_TENANT_ID = os.getenv('X_TENANT_ID', 'frinx')
@@ -18,7 +19,7 @@ UNICONFIG_ZONE_URL_TEMPLATE = os.getenv('UNICONFIG_ZONE_URL_TEMPLATE', 'http://{
 
 # URL HEADERS
 UNICONFIG_HEADERS = MappingProxyType({'Content-Type': 'application/json'})
-UNICONFIG_REQUEST_PARAMS = MappingProxyType({})
+UNICONFIG_REQUEST_PARAMS: MappingProxyType[str, Any] = MappingProxyType({})
 
 CONDUCTOR_HEADERS = MappingProxyType(
     {

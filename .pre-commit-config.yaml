@@ -33,12 +33,12 @@ repos:
       - id: end-of-file-fixer
         name: fix end of file
 
-#  - repo: https://github.com/RobertCraigie/pyright-python
-#    rev: v1.1.317
-#    hooks:
-#      - id: pyright
-#        entry: poetry run pyright
-#        args: ['-p', 'pyproject.toml']
+  - repo: https://github.com/RobertCraigie/pyright-python
+    rev: v1.1.317
+    hooks:
+      - id: pyright
+        entry: poetry run pyright
+        args: ['-p', 'pyproject.toml']
 
 #  -   repo: https://github.com/pre-commit/mirrors-mypy
 #      rev: v1.3.0
