@@ -442,7 +442,7 @@ class SubWorkflowTask(WorkflowTaskImpl):
                         else:
                             raise ValueError(f'Missing input {key}')
                 values['sub_workflow_param'] = SubWorkflowParam(
-                    name=sub_wf_def.name.__name__,
+                    name=sub_wf_def.name.__fields__['name'].default,
                     version=sub_wf_def.name.__fields__['version'].default,
                 )
         return values

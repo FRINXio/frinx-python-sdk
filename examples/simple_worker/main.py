@@ -8,31 +8,15 @@ from frinx.common.logging.logging_common import Root
 
 
 def register_tasks(conductor_client: FrinxConductorWrapper) -> None:
-    from frinx.workers.schellar.schellar_worker import Schellar
-    from frinx.workers.test.test_worker import TestWorker
-    from frinx.workers.uniconfig.cli_network_topology import CliNetworkTopology
-    from frinx.workers.uniconfig.connection_manager import ConnectionManager
-    from frinx.workers.uniconfig.snapshot_manager import SnapshotManager
-    from frinx.workers.uniconfig.uniconfig_manager import UniconfigManager
-
-    UniconfigManager().register(conductor_client)
-    ConnectionManager().register(conductor_client)
-    CliNetworkTopology().register(conductor_client)
-    SnapshotManager().register(conductor_client)
-    TestWorker().register(conductor_client)
-    Schellar().register(conductor_client)
+    logging.info('Register tasks')
+    from workers.simple_worker import Echo
+    Echo().register(conductor_client=conductor_client)
 
 
 def register_workflows() -> None:
     logging.info('Register workflows')
-
-    from frinx.workflows.schellar.schellar_workflows import SchellarWorkflows
-    from frinx.workflows.test.test import TestForkWorkflow
-    from frinx.workflows.test.test import TestWorkflow
-
+    from workers.workflow import TestWorkflow
     TestWorkflow().register(overwrite=True)
-    TestForkWorkflow().register(overwrite=True)
-    SchellarWorkflows().register(overwrite=True)
 
 
 def main() -> None:

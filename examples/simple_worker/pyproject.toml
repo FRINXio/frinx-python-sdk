@@ -6,7 +6,7 @@ authors = ["Jozef Volak <jozefvolak@elisapolystar.com>"]
 
 [tool.poetry.dependencies]
 python = "^3.10"
-frinx-python-sdk = "^0.1.1"
+frinx-python-sdk = {path = "../../"}
 
 [build-system]
 requires = ["poetry-core"]
