@@ -10,7 +10,7 @@ from frinx.common.workflow.workflow import FrontendWFInputFieldType
 from frinx.common.workflow.workflow import WorkflowImpl
 from frinx.common.workflow.workflow import WorkflowInputField
 
-from .test_worker import TestWorker
+from .test_worker import TestWorkers
 
 
 class TestWorkflows(ServiceWorkflowsImpl):
@@ -57,7 +57,7 @@ class TestWorkflows(ServiceWorkflowsImpl):
 
         def workflow_builder(self, workflow_inputs: WorkflowInput) -> None:
             generate_task = SimpleTask(
-                name=TestWorker.LoremIpsum,
+                name=TestWorkers.LoremIpsum,
                 task_reference_name='generate',
                 input_parameters=SimpleTaskInputParameters(
                     num_paragraphs=workflow_inputs.num_paragraphs.wf_input,
@@ -69,7 +69,7 @@ class TestWorkflows(ServiceWorkflowsImpl):
 
             self.tasks.append(
                 SimpleTask(
-                    name=TestWorker.Sleep,
+                    name=TestWorkers.Sleep,
                     task_reference_name='sleep',
                     input_parameters=SimpleTaskInputParameters(
                         time=workflow_inputs.sleep_time.wf_input
@@ -78,7 +78,7 @@ class TestWorkflows(ServiceWorkflowsImpl):
             )
 
             echo_task = SimpleTask(
-                name=TestWorker.Echo,
+                name=TestWorkers.Echo,
                 task_reference_name='echo',
                 input_parameters=SimpleTaskInputParameters(input=generate_task.output_ref('text')),
             )
@@ -137,7 +137,7 @@ class TestWorkflows(ServiceWorkflowsImpl):
         def workflow_builder(self, workflow_inputs: WorkflowInput) -> None:
             self.tasks.append(
                 SimpleTask(
-                    name=TestWorker.DynamicForkGenerator,
+                    name=TestWorkers.DynamicForkGenerator,
                     task_reference_name='fork_generator',
                     input_parameters=SimpleTaskInputParameters(
                         wf_count=workflow_inputs.fork_count.wf_input,
