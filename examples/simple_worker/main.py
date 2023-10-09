@@ -9,14 +9,14 @@ from frinx.common.logging.logging_common import Root
 
 def register_tasks(conductor_client: FrinxConductorWrapper) -> None:
     logging.info('Register tasks')
-    from workers.simple_worker import Echo
-    Echo().register(conductor_client=conductor_client)
+    from workers.test_worker import TestWorkers
+    TestWorkers().register(conductor_client=conductor_client)
 
 
 def register_workflows() -> None:
     logging.info('Register workflows')
-    from workers.workflow import TestWorkflow
-    TestWorkflow().register(overwrite=True)
+    from workers.test_workflow import TestWorkflows
+    TestWorkflows().register(overwrite=True)
 
 
 def main() -> None:

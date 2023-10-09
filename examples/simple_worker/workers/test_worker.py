@@ -15,7 +15,7 @@ from frinx.common.worker.task_result import TaskResult
 from frinx.common.worker.worker import WorkerImpl
 
 
-class TestWorker(ServiceWorkersImpl):
+class TestWorkers(ServiceWorkersImpl):
     class Echo(WorkerImpl):
         class WorkerDefinition(TaskDefinition):
             name: str = 'TEST_echo'
@@ -53,8 +53,8 @@ class TestWorker(ServiceWorkersImpl):
 
             @validator('time')
             def time_validator(cls, value: int) -> int:
-                if not 0 <= value <= TestWorker.Sleep.MAX_SLEEP_TIME:
-                    raise ValueError(f'Invalid sleep time, must be > 0 and < {TestWorker.Sleep.MAX_SLEEP_TIME}')
+                if not 0 <= value <= TestWorkers.Sleep.MAX_SLEEP_TIME:
+                    raise ValueError(f'Invalid sleep time, must be > 0 and < {TestWorkers.Sleep.MAX_SLEEP_TIME}')
                 return value
 
         class WorkerOutput(TaskOutput):
