@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Optional
 
 from pydantic import BaseModel
-from pydantic import Extra
+from pydantic import ConfigDict
 from pydantic import Field
 
 from frinx.common.conductor_enums import RetryLogic
@@ -16,18 +16,23 @@ from frinx.common.util import snake_to_camel_case
 
 
 class TaskInput(BaseModel):
-    class Config:
-        allow_mutation = False
-        extra = Extra.forbid
-        validate_all = True
-        arbitrary_types_allowed = False
-        allow_population_by_field_name = False
+
+    model_config = ConfigDict(
+        frozen=True,
+        extra='ignore',
+        validate_assignment=True,
+        validate_default=True,
+        arbitrary_types_allowed=True,
+        populate_by_name=False
+    )
 
 
 class TaskOutput(BaseModel):
-    class Config:
-        allow_mutation = False
-        extra = Extra.allow
+
+    model_config = ConfigDict(
+        frozen=False,
+        extra='allow',
+    )
 
 
 class BaseTaskdef(BaseModel):
@@ -57,13 +62,14 @@ class BaseTaskdef(BaseModel):
     backoff_scale_factor: Optional[int] = Field(default=None)
     limit_to_thread_count: Optional[int] = Field(default=None)
 
-    class Config:
-        allow_mutation = False
-        extra = Extra.forbid
-        validate_assignment = True
-        alias_generator = snake_to_camel_case
-        allow_population_by_field_name = True
-        # TODO  add validators
+    model_config = ConfigDict(
+        frozen=True,
+        extra='ignore',
+        validate_assignment=True,
+        alias_generator=snake_to_camel_case,
+        populate_by_name=True,
+        use_enum_values=True
+    )
 
 
 class TaskDefinition(BaseTaskdef):
@@ -72,9 +78,10 @@ class TaskDefinition(BaseTaskdef):
     labels: Optional[ListAny] = Field(default=None)
     rbac: Optional[ListAny] = Field(default=None)
 
-    class Config:
-        allow_mutation = True
-        extra = Extra.forbid
+    model_config = ConfigDict(
+        frozen=False,
+        extra='ignore',
+    )
 
 
 class DefaultTaskDefinition(BaseTaskdef):
@@ -108,9 +115,10 @@ class TaskExecutionProperties(BaseModel):
     exclude_empty_inputs: bool = False
     transform_string_to_json_valid: bool = False
 
-    class Config:
-        allow_mutation = False
-        extra = Extra.forbid
-        validate_all = True
-        arbitrary_types_allowed = False
-        allow_population_by_field_name = False
+    model_config = ConfigDict(
+        frozen=True,
+        extra='ignore',
+        validate_default=True,
+        arbitrary_types_allowed=False,
+        populate_by_name=False
+    )

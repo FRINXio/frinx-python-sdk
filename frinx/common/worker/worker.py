@@ -96,6 +96,34 @@ class WorkerImpl(ABC):
         self.task_def = self._task_definition_builder(self.task_def_template)
 
     @classmethod
+    def _param_parser(cls) -> Any:
+        params = {}
+        for param in cls.WorkerDefinition.model_fields.values():
+            params[param.alias] = param.default
+            if param.alias == 'inputKeys':
+                values = []
+                for key, field in cls.WorkerInput.model_fields.items():
+                    values.append(field.alias or key)
+                if values:
+                    params[param.alias] = values
+            if param.alias == 'outputKeys':
+                values = []
+                for key, field in cls.WorkerOutput.model_fields.items():
+                    values.append(field.alias or key)
+                if values:
+                    params[param.alias] = values
+
+        # Create Description in JSON format
+        params['description'] = jsonify_description(
+            params['description'], params['labels'], params['rbac']
+        )
+
+        params.pop('labels')
+        params.pop('rbac')
+
+        return params
+
+    @classmethod
     def _task_definition_builder(
             cls, task_def_template: type[BaseTaskdef] | type[DefaultTaskDefinition] | None = None
     ) -> TaskDefinition:
@@ -113,28 +141,19 @@ class WorkerImpl(ABC):
         """
         cls._validate()
 
-        params = {}
-        for param in cls.WorkerDefinition.__fields__.values():
-            params[param.alias] = param.default
-            if param.alias == 'inputKeys':
-                params[param.alias] = [field.alias for field in cls.WorkerInput.__fields__.values()]
-            if param.alias == 'outputKeys':
-                params[param.alias] = [
-                    field.alias for field in cls.WorkerOutput.__fields__.values()
-                ]
+        params = cls._param_parser()
 
-        # Create Description in JSON format
-        params['description'] = jsonify_description(
-            params['description'], params['labels'], params['rbac']
-        )
-
-        params.pop('labels')
-        params.pop('rbac')
+        for k, v in cls.WorkerInput.model_fields.items():
+            if v.annotation == ListStr \
+                    or v.annotation == DictAny \
+                    or v.annotation == dict \
+                    or v.annotation == DictStr:
+                pass
 
         if task_def_template is None:
-            task_def_template = DefaultTaskDefinition.__fields__.items()  # type: ignore
+            task_def_template = DefaultTaskDefinition.model_fields.items()  # type: ignore
         else:
-            task_def_template = task_def_template.__fields__.items()  # type: ignore
+            task_def_template = task_def_template.model_fields.items()  # type: ignore
 
         # Transform dict to TaskDefinition object use default values in necessary
         task_def = TaskDefinition(**params)
@@ -160,7 +179,7 @@ class WorkerImpl(ABC):
         """
         conductor_client.register(
             task_type=self.task_def.name,
-            task_definition=self.task_def.dict(by_alias=True, exclude_none=True),
+            task_definition=self.task_def.model_dump(by_alias=True, exclude_none=True),
             exec_function=self._execute_wrapper,
         )
 
@@ -207,7 +226,7 @@ class WorkerImpl(ABC):
             increment_task_execution_error(metrics, task_type, error)
             increment_uncaught_exception(metrics, task_type)
             logger.error('Validation error occurred: %s', error)
-            return TaskResult(status=TaskResultStatus.FAILED, logs=[TaskExecLog(str(error))]).dict()
+            return TaskResult(status=TaskResultStatus.FAILED, logs=[TaskExecLog(str(error))]).model_dump()
 
     @classmethod
     def _execute_func(cls, task: RawTaskIO) -> RawTaskIO:
@@ -236,16 +255,16 @@ class WorkerImpl(ABC):
             logger.debug('Worker input data after json serialization: %s:', input_data)
 
         try:
-            worker_input = cls.WorkerInput.parse_obj(input_data)
+            worker_input = cls.WorkerInput.model_validate(input_data)
         except ValidationError as error:
             logger.error('Validation error occurred: %s', error)
             raise error
 
         if not metrics.settings.metrics_enabled:
-            return cls.execute(cls, worker_input).dict()  # type: ignore[arg-type]
+            return cls.execute(cls, worker_input).model_dump()  # type: ignore[arg-type]
 
         start_time = time.time()
-        task_result: RawTaskIO = cls.execute(cls, worker_input).dict()  # type: ignore[arg-type]
+        task_result: RawTaskIO = cls.execute(cls, worker_input).model_dump()  # type: ignore[arg-type]
         finish_time = time.time()
         record_task_execute_time(metrics, str(task.get('taskType')), finish_time - start_time)
         return task_result
@@ -263,11 +282,11 @@ class WorkerImpl(ABC):
         Returns:
             DictAny: The transformed input data dictionary.
         """
-        for k, v in cls.WorkerInput.__fields__.items():
-            if v.outer_type_ == ListStr \
-                    or v.outer_type_ == DictAny \
-                    or v.outer_type_ == dict \
-                    or v.outer_type_ == DictStr:
+        for k, v in cls.WorkerInput.model_fields.items():
+            if v.annotation == ListStr \
+                    or v.annotation == DictAny \
+                    or v.annotation == dict \
+                    or v.annotation == DictStr:
                 if type(input_data.get(k)) == str:
                     try:
                         input_data[k] = json_loads(str(input_data.get(k)))
