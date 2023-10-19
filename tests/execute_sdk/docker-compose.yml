@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   conductor-server:
-    image: frinx/conductor-server:latest
+    image: frinx/conductor-server:3.14.0_UPSTREAM
     environment:
       - conductor_db_type=postgres
       - spring_datasource_url="jdbc:postgresql://postgres:5432/conductor"
