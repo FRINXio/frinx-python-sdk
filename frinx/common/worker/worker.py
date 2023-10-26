@@ -177,6 +177,9 @@ class WorkerImpl(ABC):
         Returns:
             None
         """
+        logger.info('%s', self.task_def.name)
+        logger.debug('Worker definition: %s', self.task_def.model_dump(by_alias=True, exclude_none=True))
+
         conductor_client.register(
             task_type=self.task_def.name,
             task_definition=self.task_def.model_dump(by_alias=True, exclude_none=True),
@@ -256,6 +259,9 @@ class WorkerImpl(ABC):
 
         try:
             worker_input = cls.WorkerInput.model_validate(input_data)
+            worker_input._task_id = task.get('taskId', None)
+            worker_input._workflow_instance_id = task.get('workflowInstanceId', None)
+            worker_input._workflow_type = task.get('workflowType', None)
         except ValidationError as error:
             logger.error('Validation error occurred: %s', error)
             raise error

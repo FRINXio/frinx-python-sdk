@@ -5,6 +5,7 @@ from typing import Optional
 from pydantic import BaseModel
 from pydantic import ConfigDict
 from pydantic import Field
+from pydantic import PrivateAttr
 
 from frinx.common.conductor_enums import RetryLogic
 from frinx.common.conductor_enums import TimeoutPolicy
@@ -17,8 +18,12 @@ from frinx.common.util import snake_to_camel_case
 
 class TaskInput(BaseModel):
 
+    _task_id: Optional[str] = PrivateAttr(None)
+    _workflow_instance_id: Optional[str] = PrivateAttr(None)
+    _workflow_type: Optional[str] = PrivateAttr(None)
+
     model_config = ConfigDict(
-        frozen=True,
+        frozen=False,
         extra='ignore',
         validate_assignment=True,
         validate_default=True,

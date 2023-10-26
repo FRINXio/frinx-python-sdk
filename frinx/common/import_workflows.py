@@ -17,36 +17,32 @@ def register_workflow(workflow: str, overwrite: bool = False) -> None:
         raise Exception('bad input')
 
     try:
+        data = json.loads(workflow)
+        workflow_name = data['name']
+        method = 'POST'
+
         match overwrite:
             case True:
-                logger.debug(json.dumps([json.loads(workflow)]))
-                response = requests.put(
-                    workflow_import_url,
-                    data=json.dumps([json.loads(workflow)]),
-                    headers=CONDUCTOR_HEADERS,
-                    timeout=60,
-                )
-                logger.info('Response status code - %s', response.status_code)
-                if not response.ok:
-                    logger.warning(
-                        'Import of workflow failed. Ignoring the workflow. Response content: %s',
-                        response.content,
-                    )
-            case False:
-                logger.debug(json.dumps(json.loads(workflow)))
+                method = 'PUT'
+                data = [data]
 
-                response = requests.post(
-                    workflow_import_url,
-                    data=json.dumps(json.loads(workflow)),
-                    headers=CONDUCTOR_HEADERS,
-                    timeout=60,
-                )
-                logger.info('Response status code - %s', response.status_code)
-                if not response.ok:
-                    logger.warning(
-                        'Import of workflow failed. Ignoring the workflow. Response content: %s',
-                        response.content,
-                    )
+        response = requests.request(
+            url=workflow_import_url,
+            method=method,
+            data=json.dumps(data),
+            headers=CONDUCTOR_HEADERS,
+            timeout=60,
+        )
+
+        logger.info('%s: Response status code - %s', workflow_name, response.status_code)
+        logger.debug(json.dumps(data))
+
+        if not response.ok:
+            logger.warning(
+                '%s: Import of workflow failed. Ignoring the workflow. Response content: %s',
+                workflow_name,
+                response.content,
+            )
     except Exception as err:
         logger.error(f'Error while registering workflow: {err}')
         raise err
