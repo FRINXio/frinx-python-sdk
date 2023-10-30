@@ -9,7 +9,7 @@ from typing import Final
 from typing import Optional
 
 from pydantic import BaseModel
-from pydantic import Extra
+from pydantic import ConfigDict
 from pydantic import Field
 
 from frinx.common.conductor_enums import TimeoutPolicy
@@ -57,11 +57,12 @@ class WorkflowInputField(BaseModel):
     frontend_type: FrontendWFInputFieldType | None = None
     wf_input: Optional[str] = Field(default=None)
 
-    class Config:
-        min_anystr_length = 1
-        use_enum_values = True
-        allow_population_by_field_name = True
-        extra = Extra.forbid
+    model_config = ConfigDict(
+        extra='forbid',
+        str_min_length=1,
+        use_enum_values=True,
+        populate_by_name=True,
+    )
 
     def __init__(self, **values: Any) -> None:
         if not isinstance(values['name'], str):
@@ -72,19 +73,22 @@ class WorkflowInputField(BaseModel):
 
 class WorkflowImpl(BaseModel, ABC):
     class WorkflowInput(BaseModel):
-        class Config:
-            allow_mutation = False
-            extra = Extra.forbid
-            validate_all = True
+
+        model_config = ConfigDict(
+            frozen=True,
+            extra='allow',
+            validate_default=True
+        )
 
         def __init__(self, **values: Any):
             super().__init__(**values)
 
     class WorkflowOutput(BaseModel):
-        class Config:
-            allow_mutation = False
-            extra = Extra.forbid
-            validate_all = True
+        model_config = ConfigDict(
+            frozen=True,
+            extra='forbid',
+            validate_default=True
+        )
 
     name: str
     version: int
@@ -143,7 +147,7 @@ class WorkflowImpl(BaseModel, ABC):
 
     @classmethod
     def register(cls, overwrite: bool = False) -> None:
-        register_workflow(cls().json(by_alias=True, exclude_none=True), overwrite)
+        register_workflow(cls().model_dump_json(by_alias=True, exclude_none=True), overwrite)
 
     @abstractmethod
     def workflow_builder(self, workflow_inputs: Any) -> None:
@@ -155,9 +159,10 @@ class WorkflowImpl(BaseModel, ABC):
         # https://discuss.python.org/t/a-way-to-typehint-a-return-type-in-parent-based-on-return-type-of-a-child/17020
         pass
 
-    class Config:
-        alias_generator = snake_to_camel_case
-        allow_population_by_field_name = True
-        validate_assignment = True
-        validate_all = True
-        use_enum_values = True
+    model_config = ConfigDict(
+        use_enum_values=True,
+        validate_assignment=True,
+        validate_default=True,
+        alias_generator=snake_to_camel_case,
+        populate_by_name=True
+    )

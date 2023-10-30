@@ -2,7 +2,7 @@ import copy
 from typing import Any
 
 from pydantic import Field
-from pydantic import error_wrappers
+from pydantic import ValidationError
 from pytest import raises
 
 from frinx.common.conductor_enums import TaskResultStatus
@@ -15,7 +15,9 @@ from frinx.common.worker.task_def import TaskInput
 from frinx.common.worker.task_def import TaskOutput
 from frinx.common.worker.task_result import TaskResult
 from frinx.common.worker.worker import WorkerImpl
+from tests.unit_tests.conftest import MockExecuteExcludePropertyFalse
 from tests.unit_tests.conftest import MockExecuteProperties
+from tests.unit_tests.conftest import MockExecuteTransformPropertyFalse
 
 
 class TestTaskGenerator:
@@ -43,9 +45,10 @@ class TestTaskGenerator:
             def execute(self, worker_input: WorkerInput) -> TaskResult[WorkerOutput]:
                 return TaskResult(status=TaskResultStatus.COMPLETED)
 
-        test_task = HttpTask(task_def_template=DefaultTaskDefinition).task_def.dict(
+        test_task = HttpTask(task_def_template=DefaultTaskDefinition).task_def.model_dump(
             exclude_none=True
         )
+
         test_mock = {
             'name': 'HTTP_task',
             'description': '{"description": "Generic http task", "labels": ["BASIC", "HTTP"]}',
@@ -90,7 +93,7 @@ class TestTaskGenerator:
         class DefaultCustomTaskDefinition(DefaultTaskDefinition):
             limit_to_thread_count: int = 10
 
-        test_task = HttpTask(task_def_template=DefaultCustomTaskDefinition).task_def.dict(
+        test_task = HttpTask(task_def_template=DefaultCustomTaskDefinition).task_def.model_dump(
             exclude_none=True
         )
         test_mock = {
@@ -128,7 +131,7 @@ class TestTaskGenerator:
         assert result.get('output') == response
 
     def test_execute_properties_exclude_empty_strings_disabled(self) -> None:
-        task = MockExecuteProperties()
+        task = MockExecuteExcludePropertyFalse()
         response: DictAny = DictAny({
             'response': {
                 'string_list': ['a', 'b', 'c'],
@@ -138,12 +141,11 @@ class TestTaskGenerator:
             }
         })
 
-        task.ExecutionProperties.__fields__['exclude_empty_inputs'].default = False
         result = task.__class__._execute_func(task=copy.deepcopy(task.TEST_WORKER_INPUTS))
         assert result.get('output') == response
 
     def test_execute_properties_transform_string_to_json_valid_disabled(self) -> None:
-        task = MockExecuteProperties()
+        task = MockExecuteTransformPropertyFalse()
 
         test_worker_inputs: DictAny = DictAny({
             'inputData': {
@@ -163,14 +165,13 @@ class TestTaskGenerator:
             }
         })
 
-        task.ExecutionProperties.__fields__['exclude_empty_inputs'].default = True
-        task.ExecutionProperties.__fields__['transform_string_to_json_valid'].default = False
         result = task.__class__._execute_func(task=copy.deepcopy(test_worker_inputs))
         assert result.get('output') == response
 
     def test_execute_properties_transform_string_to_json_valid_disabled_exception(self) -> None:
 
-        task = MockExecuteProperties()
-        task.ExecutionProperties.__fields__['transform_string_to_json_valid'].default = False
-        with raises(error_wrappers.ValidationError):
+        task = MockExecuteTransformPropertyFalse()
+        task.ExecutionProperties.model_fields['transform_string_to_json_valid'].default = False
+
+        with raises(ValidationError):
             task.__class__._execute_func(task=copy.deepcopy(task.TEST_WORKER_INPUTS))

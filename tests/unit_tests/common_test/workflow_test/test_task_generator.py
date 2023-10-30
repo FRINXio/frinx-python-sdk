@@ -31,10 +31,12 @@ class TestTaskGenerator:
                 )
             ],
             input_parameters=task.DecisionTaskInputParameters(
-                status='${workflow.input.status}'
+                root=dict(
+                    status='${workflow.input.status}'
+                )
             ),
             case_expression="$.status === 'true' ? 'true' : 'False'",
-        ).dict(exclude_none=True)
+        ).model_dump(exclude_none=True)
 
         test_mock = {
             'name': 'decision',
@@ -81,7 +83,7 @@ class TestTaskGenerator:
             name='decision',
             task_reference_name='decision',
             decision_cases={
-                'true': [task.HumanTask(type = TaskType.HUMAN, name='human', task_reference_name='human')]
+                'true': [task.HumanTask(type=TaskType.HUMAN, name='human', task_reference_name='human')]
             },
             default_case=[
                 task.TerminateTask(
@@ -98,7 +100,7 @@ class TestTaskGenerator:
             input_parameters=task.DecisionCaseValueTaskInputParameters(
                 case_value_param='${workflow.input.status}'
             ),
-        ).dict(exclude_none=True)
+        ).model_dump(exclude_none=True)
 
         test_mock = {
             'name': 'decision',
@@ -154,7 +156,7 @@ class TestTaskGenerator:
             loop_condition="if ( $.LoopTask['iteration'] < $.value ) { true; } else { false; }",
             loop_over=[loop_tasks],
             input_parameters={'value': 'value'},
-        ).dict(exclude_none=True)
+        ).model_dump(exclude_none=True)
 
         test_mock = {
             'name': 'do_while',
@@ -185,7 +187,7 @@ class TestTaskGenerator:
 
     def test_dyn_fork_arrays_def_task(self) -> None:
         workflow_input = MockWorkflow.WorkflowInput()
-        
+
         fork_inputs: list[dict[object, str]] = [
             {workflow_input.device_name.name: 'IOS01'},
             {workflow_input.device_name.name: 'IOS02'},
@@ -200,7 +202,7 @@ class TestTaskGenerator:
                 fork_task_name=MockWorkflow,
                 fork_task_inputs=fork_inputs,
             ),
-        ).dict(exclude_none=True)
+        ).model_dump(exclude_none=True)
 
         test_mock = {
             'name': 'dyn_fork',
@@ -242,7 +244,7 @@ class TestTaskGenerator:
             name='dyn_fork',
             task_reference_name='dyn_fork',
             input_parameters=input_parameters,
-        ).dict(exclude_none=True)
+        ).model_dump(exclude_none=True)
 
         test_mock = {
             'name': 'dyn_fork',
@@ -277,7 +279,7 @@ class TestTaskGenerator:
             name='dyn_fork',
             task_reference_name='dyn_fork',
             input_parameters=input_parameters,
-        ).dict(exclude_none=True)
+        ).model_dump(exclude_none=True)
 
         test_mock = {
             'name': 'dyn_fork',
@@ -308,7 +310,7 @@ class TestTaskGenerator:
             name='dyn_fork',
             task_reference_name='dyn_fork',
             input_parameters=input_parameters,
-        ).dict(exclude_none=True)
+        ).model_dump(exclude_none=True)
 
         test_mock = {
             'name': 'dyn_fork',
@@ -335,7 +337,7 @@ class TestTaskGenerator:
             task_reference_name='event_a',
             sink='conductor:Wait_task',
             async_complete=False,
-        ).dict(exclude_none=True)
+        ).model_dump(exclude_none=True)
 
         test_mock = {
             'name': 'Event',
@@ -359,7 +361,7 @@ class TestTaskGenerator:
             join_on=['wf1', 'wf2'],
             optional=True,
             start_delay=30,
-        ).dict(exclude_none=True)
+        ).model_dump(exclude_none=True)
 
         test_mock = {
             'name': 'exclusive_join',
@@ -385,11 +387,13 @@ class TestTaskGenerator:
                 name=MockWorker,
                 task_reference_name='add_device_cli',
                 input_parameters=task.SimpleTaskInputParameters(
-                    device_name='IOS01',
-                    zone='uniconfig',
-                    service_state='IN_SERVICE',
-                    mount_body='body',
-                ),
+                    root=dict(
+                        device_name='IOS01',
+                        zone='uniconfig',
+                        service_state='IN_SERVICE',
+                        mount_body='body'
+                    )
+                )
             )
         )
 
@@ -398,7 +402,11 @@ class TestTaskGenerator:
                 type=TaskType.SIMPLE,
                 name=MockWorker,
                 task_reference_name='install_device_cli',
-                input_parameters=task.SimpleTaskInputParameters(device_name='IOS01'),
+                input_parameters=task.SimpleTaskInputParameters(
+                    root=dict(
+                        device_name='IOS01'
+                    )
+                )
             )
         )
 
@@ -408,11 +416,13 @@ class TestTaskGenerator:
                 name=MockWorker,
                 task_reference_name='add_device',
                 input_parameters=task.SimpleTaskInputParameters(
-                    device_name='NTF01',
-                    zone='uniconfig',
-                    service_state='IN_SERVICE',
-                    mount_body='body',
-                ),
+                    root=dict(
+                        device_name='NTF01',
+                        zone='uniconfig',
+                        service_state='IN_SERVICE',
+                        mount_body='body'
+                    )
+                )
             )
         )
 
@@ -421,7 +431,11 @@ class TestTaskGenerator:
                 type=TaskType.SIMPLE,
                 name=MockWorker,
                 task_reference_name='install_device_netconf',
-                input_parameters=task.SimpleTaskInputParameters(device_name='NTF01'),
+                input_parameters=task.SimpleTaskInputParameters(
+                    root=dict(
+                        device_name='NTF01'
+                    )
+                )
             )
         )
 
@@ -430,7 +444,7 @@ class TestTaskGenerator:
             name='fork',
             task_reference_name='fork',
             fork_tasks=[fork_tasks_a, fork_tasks_b],
-        ).dict(exclude_none=True)
+        ).model_dump(exclude_none=True)
 
         test_mock = {
             'name': 'fork',
@@ -502,7 +516,7 @@ class TestTaskGenerator:
         assert test_mock == test_task
 
     def test_human_task(self) -> None:
-        test_task = task.HumanTask(type=TaskType.HUMAN, name='human', task_reference_name='human').dict(
+        test_task = task.HumanTask(type=TaskType.HUMAN, name='human', task_reference_name='human').model_dump(
             exclude_none=True
         )
 
@@ -528,12 +542,12 @@ class TestTaskGenerator:
                 expression='if ($.value){return {"result": true}} else { return {"result": false}}',
                 value='${workflow.variables.test}',
             ),
-        ).dict(exclude_none=True)
+        ).model_dump(exclude_none=True)
 
         input_parameters_exp = (
             'function e() { if ($.value){return {"result": true}} else { return {"result": false}} } e();'
         )
-        
+
         test_mock = {
             'name': 'inline',
             'task_reference_name': 'inline',
@@ -555,7 +569,7 @@ class TestTaskGenerator:
         input_parameters_exp = (
             'function e() { if ($.value){return {"result": true}} else { return {"result": false}} } e();'
         )
-        
+
         test_task = task.InlineTask(
             type=TaskType.INLINE,
             name='inline',
@@ -564,7 +578,7 @@ class TestTaskGenerator:
                 expression=input_parameters_exp,
                 value='${workflow.variables.test}',
             ),
-        ).dict(exclude_none=True)
+        ).model_dump(exclude_none=True)
 
         test_mock = {
             'name': 'inline',
@@ -584,7 +598,7 @@ class TestTaskGenerator:
         assert test_mock == test_task
 
     def test_join_task(self) -> None:
-        test_task = task.JoinTask(type=TaskType.JOIN, name='join', task_reference_name='join').dict(
+        test_task = task.JoinTask(type=TaskType.JOIN, name='join', task_reference_name='join').model_dump(
             exclude_none=True
         )
 
@@ -611,7 +625,7 @@ class TestTaskGenerator:
                 query_expression='{ key3: (.key1.value1) }',
                 key_1={'value1': ['a', 'b']},
             ),
-        ).dict(exclude_none=True)
+        ).model_dump(exclude_none=True)
 
         test_mock = {
             'name': 'json_jq',
@@ -634,8 +648,8 @@ class TestTaskGenerator:
             type=TaskType.SET_VARIABLE,
             name='var',
             task_reference_name='var',
-            input_parameters=task.SetVariableTaskInputParameters(env='frinx'),
-        ).dict(exclude_none=True)
+            input_parameters=task.SetVariableTaskInputParameters(root=dict(env='frinx')),
+        ).model_dump(exclude_none=True)
 
         test_mock = {
             'name': 'var',
@@ -656,12 +670,14 @@ class TestTaskGenerator:
             name=MockWorker,
             task_reference_name='test',
             input_parameters=task.SimpleTaskInputParameters(
-                device_name='IOS01',
-                zone='uniconfig',
-                service_state='IN_SERVICE',
-                mount_body='body',
+                root=dict(
+                    device_name='IOS01',
+                    zone='uniconfig',
+                    service_state='IN_SERVICE',
+                    mount_body='body',
+                )
             ),
-        ).dict(exclude_none=True)
+        ).model_dump(exclude_none=True)
 
         test_mock = {
             'name': 'MockWorker',
@@ -699,7 +715,7 @@ class TestTaskGenerator:
             name='MockWorkflow',
             task_reference_name='start',
             input_parameters=task_inputs,
-        ).dict(exclude_none=True)
+        ).model_dump(exclude_none=True)
 
         test_mock = {
             'name': 'MockWorkflow',
@@ -739,7 +755,7 @@ class TestTaskGenerator:
             name='MockWorkflow',
             task_reference_name='start',
             input_parameters=task_inputs,
-        ).dict(exclude_none=True)
+        ).model_dump(exclude_none=True)
 
         test_mock = {
             'name': 'MockWorkflow',
@@ -776,8 +792,8 @@ class TestTaskGenerator:
             name='subworkflow',
             task_reference_name='subworkflow',
             sub_workflow_param=sub_workflow_param,
-            input_parameters=task.SubWorkflowInputParameters(**sub_workflow_input),
-        ).dict(exclude_none=True)
+            input_parameters=task.SubWorkflowInputParameters(root=sub_workflow_input),
+        ).model_dump(exclude_none=True)
 
         test_mock = {
             'name': 'subworkflow',
@@ -825,7 +841,7 @@ class TestTaskGenerator:
             input_parameters=task.SwitchTaskValueParamInputParameters(
                 switch_case_value='${workflow.input.value}'
             ),
-        ).dict(exclude_none=True)
+        ).model_dump(exclude_none=True)
 
         test_mock = {
             'name': 'switch',
@@ -899,7 +915,7 @@ class TestTaskGenerator:
             input_parameters=task.SwitchTaskInputParameters(
                 input_value='${workflow.input.value}'
             ),
-        ).dict(exclude_none=True)
+        ).model_dump(exclude_none=True)
 
         test_mock = {
             'name': 'switch',
@@ -951,7 +967,7 @@ class TestTaskGenerator:
                 termination_reason=None,
                 workflow_output={'output': 'COMPLETED'},
             ),
-        ).dict(exclude_none=True)
+        ).model_dump(exclude_none=True)
 
         test_mock = {
             'name': 'terminate',
@@ -977,7 +993,7 @@ class TestTaskGenerator:
             input_parameters=task.WaitDurationTaskInputParameters(
                 duration='10 seconds'
             ),
-        ).dict(exclude_none=True)
+        ).model_dump(exclude_none=True)
 
         test_mock = {
             'name': 'WAIT',
@@ -1000,7 +1016,7 @@ class TestTaskGenerator:
             input_parameters=task.WaitUntilTaskInputParameters(
                 until='2022-12-25 09:00 PST'
             ),
-        ).dict(exclude_none=True)
+        ).model_dump(exclude_none=True)
 
         test_mock = {
             'name': 'WAIT_UNTIL',

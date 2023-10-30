@@ -77,9 +77,9 @@ def configure_logging(model: LoggerConfig | dict[str, Any] | str | None = None) 
         case dict():
             logging.config.dictConfig(model)
         case LoggerConfig():
-            logging.config.dictConfig(json.loads(model.json(by_alias=True)))
+            logging.config.dictConfig(json.loads(model.model_dump_json(by_alias=True)))
         case None:
-            logging.config.dictConfig(json.loads(LoggerConfig().json(by_alias=True)))
+            logging.config.dictConfig(json.loads(LoggerConfig().model_dump_json(by_alias=True)))
 
 
 def configure_logging_from_file(

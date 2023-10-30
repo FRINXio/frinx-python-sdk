@@ -5,7 +5,7 @@ from typing import Optional
 from typing import TypeAlias
 
 from pydantic import BaseModel
-from pydantic import Extra
+from pydantic import ConfigDict
 from pydantic import Field
 
 from frinx.common.type_aliases import DictAny
@@ -59,10 +59,10 @@ class Task(BaseModel):
     loop_over_task: Optional[bool] = Field(default=None)
     queue_wait_time: Optional[int] = Field(default=None)
 
-    class Config:
-        allow_mutation = True
-        extra = Extra.forbid
-        validate_assignment = True
-        alias_generator = snake_to_camel_case
-        allow_population_by_field_name = True
-        # TODO  add validators
+    model_config = ConfigDict(
+        frozen=False,
+        extra='forbid',
+        validate_assignment=True,
+        alias_generator=snake_to_camel_case,
+        populate_by_name=True
+    )

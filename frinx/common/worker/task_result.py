@@ -1,12 +1,13 @@
+import typing
 from typing import Generic
 from typing import TypeVar
 
 from pydantic import BaseModel
+from pydantic import ConfigDict
 from pydantic import Field
-from pydantic import validator
+from pydantic import field_validator
 
 from frinx.common.conductor_enums import TaskResultStatus
-from frinx.common.util import snake_to_camel_case
 from frinx.common.worker.task_def import TaskOutput
 
 T = TypeVar('T')
@@ -29,14 +30,14 @@ TO = TypeVar('TO', bound=TaskOutput | None)
 class TaskResult(BaseModel, Generic[TO]):
     status: TaskResultStatus
     output: TO | None = None
-    logs: list[str] | str = Field(default=[])
+    logs: typing.Union[list[str], str] = Field(default=[])
 
-    class Config:
-        validate_assignment = True
-        alias_generator = snake_to_camel_case
-        allow_population_by_field_name = True
+    model_config = ConfigDict(
+        validate_assignment=True,
+        # alias_generator=snake_to_camel_case,
+    )
 
-    @validator('logs', always=True)
+    @field_validator('logs', mode='before')
     def validate_logs(cls, logs: str | list[str]) -> list[str]:
         match logs:
             case list():

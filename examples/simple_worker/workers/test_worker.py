@@ -2,7 +2,7 @@ import random
 import time
 from typing import Optional
 
-from pydantic import validator
+from pydantic import field_validator
 
 from frinx.common.conductor_enums import TaskResultStatus
 from frinx.common.type_aliases import DictAny
@@ -51,7 +51,7 @@ class TestWorkers(ServiceWorkersImpl):
         class WorkerInput(TaskInput):
             time: Optional[int]
 
-            @validator('time')
+            @field_validator('time')
             def time_validator(cls, value: int) -> int:
                 if not 0 <= value <= TestWorkers.Sleep.MAX_SLEEP_TIME:
                     raise ValueError(f'Invalid sleep time, must be > 0 and < {TestWorkers.Sleep.MAX_SLEEP_TIME}')

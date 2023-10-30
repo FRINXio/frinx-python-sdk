@@ -219,32 +219,46 @@ fork_tasks_a.append(SimpleTask(
     name=Inventory.InventoryAddDevice,
     task_reference_name="add_device_cli",
     input_parameters=SimpleTaskInputParameters(
-        device_name="IOS01", zone="uniconfig", service_state="IN_SERVICE", mount_body="body"
-    ),
+        root=dict(
+            device_name="IOS01",
+            zone="uniconfig",
+            service_state="IN_SERVICE",
+            mount_body="body"
+        )
+    )
 ))
 
 fork_tasks_a.append(SimpleTask(
     name=Inventory.InventoryInstallDeviceByName,
     task_reference_name="install_device_cli",
     input_parameters=SimpleTaskInputParameters(
-        device_name="IOS01"
-    ),
+        root=dict(
+            device_name="IOS01"
+        )
+    )
 ))
 
 fork_tasks_b.append(SimpleTask(
     name=Inventory.InventoryAddDevice,
     task_reference_name="add_device_netconf",
     input_parameters=SimpleTaskInputParameters(
-        device_name="NTF01", zone="uniconfig", service_state="IN_SERVICE", mount_body="body"
-    ),
+        root=dict(
+            device_name="NTF01",
+            zone="uniconfig",
+            service_state="IN_SERVICE",
+            mount_body="body"
+        )
+    )
 ))
 
 fork_tasks_b.append(SimpleTask(
     name=Inventory.InventoryInstallDeviceByName,
     task_reference_name="install_device_netconf",
     input_parameters=SimpleTaskInputParameters(
-        device_name="NTF01"
-    ),
+        root=dict(
+            device_name="NTF01"
+        )
+    )
 ))
 
 self.tasks.append(ForkTask(
@@ -342,7 +356,9 @@ self.tasks.append(SetVariableTask(
     name="var",
     task_reference_name="var",
     input_parameters=SetVariableTaskInputParameters(
-        env="frinx"
+        root=dict(
+            env="frinx"
+        )
     )
 ))
 ```
@@ -355,10 +371,12 @@ self.tasks.append(
         name=Inventory.InventoryAddDevice,
         task_reference_name="test",
         input_parameters=SimpleTaskInputParameters(
-            device_name="IOS01",
-            zone="uniconfig",
-            service_state="aha",
-            mount_body="body"
+            root=dict(
+                device_name="IOS01",
+                zone="uniconfig",
+                service_state="aha",
+                mount_body="body"
+            )
         )
     )
 )
@@ -439,7 +457,7 @@ self.tasks.append(SubWorkflowTask(
     task_reference_name="subworkflow",
     sub_workflow_param=sub_workflow_param,
     input_parameters=SubWorkflowInputParameters(
-        **sub_workflow_input
+        root=sub_workflow_input
     )
 ))
 ```
@@ -462,7 +480,7 @@ self.tasks.append(SubWorkflowTask(
     task_reference_name="subworkflow",
     sub_workflow_param=sub_workflow_param,
     input_parameters=SubWorkflowInputParameters(
-        **sub_workflow_input
+        root=sub_workflow_input
     )
 ))
 ```

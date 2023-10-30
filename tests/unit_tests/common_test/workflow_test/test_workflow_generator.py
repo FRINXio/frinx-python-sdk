@@ -81,8 +81,10 @@ class TestWorkflowGenerator:
                         name=MockWorker,
                         task_reference_name='http_task',
                         input_parameters=SimpleTaskInputParameters(
-                            http_request=http_request
-                        ),
+                            root=dict(
+                                http_request=http_request
+                            )
+                        )
                     )
                 )
 
@@ -90,7 +92,7 @@ class TestWorkflowGenerator:
                 name='Http_request',
                 version=1,
                 description='Simple HTTP request'
-            ).dict(exclude_none=True)
+            ).model_dump(exclude_none=True)
 
         test_mock = {
             'name': 'Http_request',

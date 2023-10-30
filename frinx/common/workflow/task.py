@@ -1,15 +1,16 @@
+import typing
 from enum import Enum
 from typing import Any
 from typing import Optional
 from typing import TypeAlias
 
 from pydantic import BaseModel
-from pydantic import Extra
+from pydantic import ConfigDict
 from pydantic import Field
+from pydantic import RootModel
 from pydantic import StrictBool
-from pydantic import root_validator
-from pydantic import validator
-from pydantic.utils import ROOT_KEY
+from pydantic import field_validator
+from pydantic import model_validator
 
 from frinx.common.conductor_enums import DoWhileEvaluatorType
 from frinx.common.conductor_enums import SwitchEvaluatorType
@@ -85,11 +86,12 @@ class WorkflowTaskImpl(BaseModel):
     expression: Optional[str] = Field(default=None)
     workflow_task_type: Optional[str] = Field(default=None)
 
-    class Config:
-        alias_generator = snake_to_camel_case
-        allow_population_by_field_name = True
-        validate_assignment = True
-        validate_all = True
+    model_config = ConfigDict(
+        validate_assignment=True,
+        validate_default=True,
+        alias_generator=snake_to_camel_case,
+        populate_by_name=True
+    )
 
     def output_ref(self, path: str | None = None) -> str:
         if not path or path is None:
@@ -108,34 +110,40 @@ class DynamicForkTaskInputParameters(BaseModel):
     dynamic_tasks: str | object
     dynamic_tasks_input: str | object
 
-    class Config:
-        validate_assignment = True
-        allow_mutation = True
-        validate_all = True
+    model_config = ConfigDict(
+        validate_assignment=True,
+        frozen=False,
+        validate_default=True,
+    )
 
 
 class DynamicForkTaskFromDefInputParameters(BaseModel):
-    dynamic_tasks: str | object
+    dynamic_tasks: typing.Union[str, object]
     dynamic_tasks_input: str
 
-    class Config:
-        validate_assignment = True
-        allow_mutation = True
-        validate_all = True
+    model_config = ConfigDict(
+        validate_assignment=True,
+        frozen=False,
+        validate_default=True,
+    )
 
-    @root_validator(pre=True)
-    def check_input_values(cls, values: dict[str, Any]) -> Any:
-        values['dynamic_tasks'] = values['dynamic_tasks'].__fields__['name'].default
-        return values
+    @field_validator('dynamic_tasks', mode='before')
+    def check_input_values(cls, value: str | BaseModel) -> Any:
+        match value:
+            case str():
+                pass
+            case _:
+                value = value.model_fields['name'].default
+        return value
 
 
 class DynamicForkArraysTaskFromDefInputParameters(BaseModel):
     fork_task_name: object
     fork_task_inputs: list[dict[object, str]] | None | str = []
 
-    @root_validator(pre=True)
+    @model_validator(mode='before')
     def check_input_values(cls, values: dict[str, Any]) -> Any:
-        wf_def_input_params = list(values['fork_task_name'].WorkflowInput.__fields__.keys())
+        wf_def_input_params = list(values['fork_task_name'].WorkflowInput.model_fields.keys())
         fork_task_inputs = values['fork_task_inputs']
 
         for fork_task_input in fork_task_inputs:
@@ -147,23 +155,25 @@ class DynamicForkArraysTaskFromDefInputParameters(BaseModel):
                     """
                 )
 
-        values['fork_task_name'] = values['fork_task_name'].__fields__['name'].default
+        values['fork_task_name'] = values['fork_task_name'].model_fields['name'].default
         return values
 
-    class Config:
-        validate_assignment = True
-        allow_mutation = True
-        validate_all = True
+    model_config = ConfigDict(
+        validate_assignment=True,
+        frozen=False,
+        validate_default=True,
+    )
 
 
 class DynamicForkArraysTaskInputParameters(BaseModel):
     fork_task_name: str
     fork_task_inputs: list[dict[str, Any]] | str
 
-    class Config:
-        validate_assignment = True
-        allow_mutation = True
-        validate_all = True
+    model_config = ConfigDict(
+        validate_assignment=True,
+        frozen=False,
+        validate_default=True,
+    )
 
 
 class DynamicForkTask(WorkflowTaskImpl):
@@ -171,8 +181,11 @@ class DynamicForkTask(WorkflowTaskImpl):
     type: TaskType = TaskType.FORK_JOIN_DYNAMIC
     dynamic_fork_tasks_param: str = Field(default='dynamicTasks')
     dynamic_fork_tasks_input_param_name: str = Field(default='dynamicTasksInput')
-    input_parameters: DynamicForkArraysTaskInputParameters | DynamicForkTaskInputParameters \
-                      | DynamicForkArraysTaskFromDefInputParameters | DynamicForkTaskFromDefInputParameters
+    input_parameters: typing.Union[
+        DynamicForkArraysTaskInputParameters,
+        DynamicForkTaskInputParameters,
+        DynamicForkArraysTaskFromDefInputParameters, DynamicForkTaskFromDefInputParameters
+    ]
 
 
 class ForkTask(WorkflowTaskImpl):
@@ -200,19 +213,20 @@ class InlineTaskInputParameters(BaseModel):
     evaluator_type: str = Field(default='javascript', alias='evaluatorType')
     expression: str
 
-    class Config:
-        allow_population_by_field_name = True
-        validate_assignment = True
-        allow_mutation = True
-        extra = Extra.allow
+    model_config = ConfigDict(
+        validate_assignment=True,
+        frozen=False,
+        validate_default=True,
+        extra='allow'
+    )
 
-    def __init__(self, expression: str, **data: Any) -> None:
+    def __init__(self, expression: str, evaluator_type: Optional[str] = None, **data: Any) -> None:
         data['expression'] = expression
-        if self.__custom_root_type__ and data.keys() != {ROOT_KEY}:
-            data = {ROOT_KEY: data}
+        if evaluator_type:
+            data['evaluator_type'] = evaluator_type
         super().__init__(**data)
 
-    @validator('expression', always=True)
+    @field_validator('expression', mode='before', check_fields=False)
     def expression_in_function(cls, expression: str) -> str:
         if not expression.startswith('function'):
             expression = f'function e() {{ {expression} }} e();'
@@ -227,16 +241,15 @@ class InlineTask(WorkflowTaskImpl):
 class LambdaTaskInputParameters(BaseModel):
     script_expression: str = Field(alias='scriptExpression')
 
-    class Config:
-        allow_population_by_field_name = True
-        validate_assignment = True
-        allow_mutation = True
-        extra = Extra.allow
+    model_config = ConfigDict(
+        validate_assignment=True,
+        frozen=False,
+        populate_by_name=True,
+        extra='allow'
+    )
 
     def __init__(self, script_expression: str, **data: Any) -> None:
         data['script_expression'] = script_expression
-        if self.__custom_root_type__ and data.keys() != {ROOT_KEY}:
-            data = {ROOT_KEY: data}
         super().__init__(**data)
 
 
@@ -268,13 +281,14 @@ class TerminateTaskInputParameters(BaseModel):
     termination_reason: str | None
     workflow_output: dict[str, Any] | str | None
 
-    class Config:
-        extra = Extra.allow
-        alias_generator = snake_to_camel_case
-        allow_population_by_field_name = True
-        validate_assignment = True
-        allow_mutation = True
-        validate_all = True
+    model_config = ConfigDict(
+        validate_assignment=True,
+        frozen=False,
+        populate_by_name=True,
+        extra='allow',
+        alias_generator=snake_to_camel_case,
+        validate_default=True
+    )
 
 
 class TerminateTask(WorkflowTaskImpl):
@@ -286,17 +300,23 @@ class StartWorkflowTaskPlainInputParameters(BaseModel):
     name: str
     version: Optional[int] = Field(default=None)
     input: dict[str, object] | None = {}
-    correlation_id: str | None = Field(alias='correlationId')
+    correlation_id: str | None = Field(None, alias='correlationId')
 
 
 class StartWorkflowTaskFromDefInputParameters(BaseModel):
-    workflow: object
+    name: str
+    version: int
     input: dict[str, object] | None = {}
     correlation_id: str | None = Field(alias='correlationId')
 
-    @root_validator(pre=True)
+    def __init__(self, workflow: type[BaseModel], **data: Any) -> None:
+        data['workflow'] = workflow
+        super().__init__(**data)
+
+    @model_validator(mode='before')
     def check_input_values(cls, values: dict[str, Any]) -> dict[str, Any]:
-        wf_def_input = list(values['workflow'].WorkflowInput.__fields__.keys())
+
+        wf_def_input = list(values['workflow'].WorkflowInput.model_fields.keys())
         wf_input = list(values['input'].keys())
         if not bool(set(wf_input) & set(wf_def_input)):
             raise ValueError(
@@ -305,25 +325,28 @@ class StartWorkflowTaskFromDefInputParameters(BaseModel):
                     inserted: {wf_input}
                 """
             )
-        values['name'] = values['workflow'].__fields__['name'].default
-        values['version'] = values['workflow'].__fields__['version'].default
-
+        values['name'] = values['workflow'].model_fields['name'].default
+        values['version'] = values['workflow'].model_fields['version'].default
         return values
 
-    class Config:
-        extra = Extra.allow
+    model_config = ConfigDict(
+        extra='ignore',
+        ignored_types=(type, object)
+    )
 
 
 class StartWorkflowTaskInputParameters(BaseModel):
-    start_workflow: StartWorkflowTaskPlainInputParameters | StartWorkflowTaskFromDefInputParameters
+    start_workflow: typing.Union[StartWorkflowTaskPlainInputParameters, StartWorkflowTaskFromDefInputParameters]
 
-    class Config:
-        extra = Extra.allow
-        alias_generator = snake_to_camel_case
-        allow_population_by_field_name = True
-        validate_assignment = True
-        allow_mutation = True
-        validate_all = True
+    model_config = ConfigDict(
+        validate_assignment=True,
+        frozen=False,
+        populate_by_name=True,
+        extra='allow',
+        alias_generator=snake_to_camel_case,
+        validate_default=True,
+        ignored_types=(type, object)
+    )
 
 
 class StartWorkflowTask(WorkflowTaskImpl):
@@ -334,25 +357,27 @@ class StartWorkflowTask(WorkflowTaskImpl):
 class SwitchTaskInputParameters(BaseModel):
     input_value: str
 
-    class Config:
-        extra = Extra.allow
-        alias_generator = snake_to_camel_case
-        allow_population_by_field_name = True
-        validate_assignment = True
-        allow_mutation = True
-        validate_all = True
+    model_config = ConfigDict(
+        validate_assignment=True,
+        frozen=False,
+        populate_by_name=True,
+        extra='allow',
+        alias_generator=snake_to_camel_case,
+        validate_default=True
+    )
 
 
 class SwitchTaskValueParamInputParameters(BaseModel):
     switch_case_value: str
 
-    class Config:
-        extra = Extra.allow
-        alias_generator = snake_to_camel_case
-        allow_population_by_field_name = True
-        validate_assignment = True
-        allow_mutation = True
-        validate_all = True
+    model_config = ConfigDict(
+        validate_assignment=True,
+        frozen=False,
+        populate_by_name=True,
+        extra='allow',
+        alias_generator=snake_to_camel_case,
+        validate_default=True
+    )
 
 
 class SwitchTask(WorkflowTaskImpl):
@@ -364,14 +389,8 @@ class SwitchTask(WorkflowTaskImpl):
     input_parameters: SwitchTaskInputParameters | SwitchTaskValueParamInputParameters
 
 
-class DecisionTaskInputParameters(BaseModel):
-    def __init__(self, **data: Any) -> None:
-        if self.__custom_root_type__ and data.keys() != {ROOT_KEY}:
-            data = {ROOT_KEY: data}
-        super().__init__(**data)
-
-    class Config:
-        extra = Extra.allow
+class DecisionTaskInputParameters(RootModel[Any]):
+    root: Any
 
 
 class DecisionTask(WorkflowTaskImpl):
@@ -394,14 +413,8 @@ class DecisionCaseValueTask(WorkflowTaskImpl):
     input_parameters: DecisionCaseValueTaskInputParameters
 
 
-class SubWorkflowInputParameters(BaseModel):
-    def __init__(self, **data: Any) -> None:
-        if self.__custom_root_type__ and data.keys() != {ROOT_KEY}:
-            data = {ROOT_KEY: data}
-        super().__init__(**data)
-
-    class Config:
-        extra = Extra.allow
+class SubWorkflowInputParameters(RootModel[Any]):
+    root: Any
 
 
 class SubWorkflowParam(BaseModel):
@@ -416,11 +429,12 @@ class SubWorkflowFromDefParam(BaseModel):
     task_to_domain: Optional[TaskToDomain] = Field(default=None)
     workflow_definition: Optional[WorkflowDef] = Field(default=None)
 
-    class Config:
-        alias_generator = snake_to_camel_case
-        allow_population_by_field_name = True
-        validate_assignment = True
-        validate_all = True
+    model_config = ConfigDict(
+        validate_assignment=True,
+        populate_by_name=True,
+        alias_generator=snake_to_camel_case,
+        validate_default=True
+    )
 
 
 class SubWorkflowTask(WorkflowTaskImpl):
@@ -428,10 +442,18 @@ class SubWorkflowTask(WorkflowTaskImpl):
     sub_workflow_param: SubWorkflowParam | SubWorkflowFromDefParam
     input_parameters: SubWorkflowInputParameters
 
-    @root_validator(pre=True)
+    model_config = ConfigDict(
+        validate_assignment=True,
+        frozen=False,
+        populate_by_name=True,
+        alias_generator=snake_to_camel_case,
+        validate_default=True
+    )
+
+    @model_validator(mode='before')
     def check_input_values(cls, values: dict[str, Any]) -> dict[str, Any]:
         sub_wf_def = values['sub_workflow_param']
-        worker_inputs = values['input_parameters'].dict()
+        worker_inputs = values['input_parameters'].model_dump()
         match sub_wf_def:
             case SubWorkflowFromDefParam():
                 workflow_inputs = sub_wf_def.name.WorkflowInput().__fields__.items()
@@ -447,22 +469,9 @@ class SubWorkflowTask(WorkflowTaskImpl):
                 )
         return values
 
-    class Config:
-        alias_generator = snake_to_camel_case
-        allow_population_by_field_name = True
-        validate_assignment = True
-        allow_mutation = True
-        validate_all = True
 
-
-class SimpleTaskInputParameters(BaseModel):
-    def __init__(self, **data: Any) -> None:
-        if self.__custom_root_type__ and data.keys() != {ROOT_KEY}:
-            data = {ROOT_KEY: data}
-        super().__init__(**data)
-
-    class Config:
-        extra = Extra.allow
+class SimpleTaskInputParameters(RootModel[Any]):
+    root: Any
 
 
 class SimpleTask(WorkflowTaskImpl):
@@ -470,34 +479,28 @@ class SimpleTask(WorkflowTaskImpl):
     type: TaskType = TaskType.SIMPLE
     input_parameters: SimpleTaskInputParameters
 
-    @root_validator(pre=True)
+    @model_validator(mode='before')
     def check_input_values(cls, values: dict[str, Any]) -> dict[str, Any]:
         task_def = values['name']
-        worker_inputs = values['input_parameters'].dict()
+        worker_inputs = values['input_parameters'].model_dump()
 
         match task_def:
             case type():
                 if not issubclass(task_def, WorkerImpl):
                     raise ValueError('Bad input for name')
-                values['name'] = task_def.WorkerDefinition.__fields__['name'].default
-                task_input = task_def.WorkerInput.__fields__.items()
+                values['name'] = task_def.WorkerDefinition.model_fields['name'].default
+                task_input = task_def.WorkerInput.model_fields.items()
                 for key, value in task_input:
                     if key not in worker_inputs:
-                        if value.required is False:
+                        if value.is_required() is False:
                             pass
                         else:
                             raise ValueError(f'Missing input {key}')
         return values
 
 
-class SetVariableTaskInputParameters(BaseModel):
-    def __init__(self, **data: Any) -> None:
-        if self.__custom_root_type__ and data.keys() != {ROOT_KEY}:
-            data = {ROOT_KEY: data}
-        super().__init__(**data)
-
-    class Config:
-        extra = Extra.allow
+class SetVariableTaskInputParameters(RootModel[Any]):
+    root: Any
 
 
 class SetVariableTask(WorkflowTaskImpl):
@@ -515,11 +518,12 @@ class KafkaPublishTaskInputParameters(BaseModel):
     headers: Optional[dict[str, Any]] = Field(default=None)
     topic: str
 
-    class Config:
-        alias_generator = snake_to_camel_case
-        allow_population_by_field_name = True
-        validate_assignment = True
-        allow_mutation = True
+    model_config = ConfigDict(
+        validate_assignment=True,
+        frozen=False,
+        populate_by_name=True,
+        alias_generator=snake_to_camel_case,
+    )
 
 
 class KafkaPublishTask(WorkflowTaskImpl):
@@ -530,16 +534,15 @@ class KafkaPublishTask(WorkflowTaskImpl):
 class JsonJqTaskInputParameters(BaseModel):
     query_expression: str = Field(alias='queryExpression')
 
-    class Config:
-        allow_population_by_field_name = True
-        validate_assignment = True
-        allow_mutation = True
-        extra = Extra.allow
+    model_config = ConfigDict(
+        validate_assignment=True,
+        frozen=False,
+        populate_by_name=True,
+        extra='allow'
+    )
 
     def __init__(self, query_expression: str, **data: Any) -> None:
-        data['query_expression'] = query_expression
-        if self.__custom_root_type__ and data.keys() != {ROOT_KEY}:
-            data = {ROOT_KEY: data}
+        data['queryExpression'] = query_expression
         super().__init__(**data)
 
 
