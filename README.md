@@ -6,8 +6,7 @@ which cover basic use cases of [FRINX MACHINE](https://docs.frinx.io/) component
 ## Environment set up
 1. Install poetry
     ```sh
-    sudo apt-get -y install pipx
-    pipx install poetry
+    pip3 install poetry
     ```
 
 2. Install dependencies
