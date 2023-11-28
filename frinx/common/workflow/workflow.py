@@ -26,7 +26,9 @@ class FrontendWFInputFieldType(str, Enum):
     STRING = 'string'
     INT = 'int'
     TEXTAREA = 'textarea'
-    # TODO ADD LIST, DICT, ... support in UI
+    LIST = 'list'
+    JSON = 'json'
+    MULTISELECT = 'multiselect'
 
 
 class _UndefinedType:
