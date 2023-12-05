@@ -5,7 +5,6 @@ from abc import ABC
 from abc import abstractmethod
 from enum import Enum
 from typing import Any
-from typing import Final
 from typing import Optional
 
 from pydantic import BaseModel
@@ -31,28 +30,9 @@ class FrontendWFInputFieldType(str, Enum):
     MULTISELECT = 'multiselect'
 
 
-class _UndefinedType:
-    """Type to be used as singleton mainly when distinguishing from None is needed."""
-
-    def __bool__(self) -> bool:
-        return False
-
-    def __repr__(self) -> str:
-        return '<not-defined>'
-
-    def __copy__(self) -> _UndefinedType:
-        return self
-
-    def __deepcopy__(self, _: Any) -> _UndefinedType:
-        return self
-
-
-UNDEFINED: Final[_UndefinedType] = _UndefinedType()
-
-
 class WorkflowInputField(BaseModel):
     name: str
-    frontend_default_value: Any = Field(UNDEFINED, alias='value')
+    frontend_default_value: Any = ''
     description: str = ''
     options: Optional[ListAny] = None
     type: Any
