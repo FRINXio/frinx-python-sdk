@@ -1,5 +1,6 @@
 import logging
 import time
+import traceback
 from abc import ABC
 from abc import abstractmethod
 from json import JSONDecodeError
@@ -226,10 +227,12 @@ class WorkerImpl(ABC):
             logger.debug('Task result %s:', task_result)
             return task_result
         except Exception as error:
+            error_name = type(error).__name__
+            detailed_traceback = str(traceback.format_exc())
             increment_task_execution_error(metrics, task_type, error)
             increment_uncaught_exception(metrics, task_type)
-            logger.error('Validation error occurred: %s', error)
-            return TaskResult(status=TaskResultStatus.FAILED, logs=[TaskExecLog(str(error))]).model_dump()
+            logger.error('%s error occurred: %s \n%s', error_name, error, detailed_traceback)
+            return TaskResult(status=TaskResultStatus.FAILED, logs=[TaskExecLog(f'{error_name}: {error}')]).model_dump()
 
     @classmethod
     def _execute_func(cls, task: RawTaskIO) -> RawTaskIO:
