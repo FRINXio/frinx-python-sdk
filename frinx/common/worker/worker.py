@@ -221,7 +221,7 @@ class WorkerImpl(ABC):
 
         match error:
             case ValidationError():
-                formatted_error: DictAny = cls._validate_exception_format(ValidationError(error))
+                formatted_error: DictAny = cls._validate_exception_format(error)
                 task_result.logs = [TaskExecLog(f'{error_name}: {formatted_error}')]
 
                 if execution_properties.pass_worker_input_exception_to_task_output:
