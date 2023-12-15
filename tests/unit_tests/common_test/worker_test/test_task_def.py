@@ -1,5 +1,6 @@
 import copy
 from typing import Any
+from typing import cast
 
 from pydantic import Field
 from pydantic import ValidationError
@@ -118,6 +119,8 @@ class TestTaskGenerator:
     def test_execute_properties_default(self) -> None:
 
         task = MockExecuteProperties()
+        execution_properties = cast(WorkerImpl.ExecutionProperties, task.ExecutionProperties())
+
         response: DictAny = DictAny({
             'response': {
                 'string_list': ['a', 'b', 'c'],
@@ -127,11 +130,16 @@ class TestTaskGenerator:
             }
         })
 
-        result = task.__class__._execute_func(task=copy.deepcopy(task.TEST_WORKER_INPUTS))
+        result = task.__class__._execute_func(
+            task=copy.deepcopy(task.TEST_WORKER_INPUTS),
+            execution_properties=execution_properties
+        )
         assert result.get('output') == response
 
     def test_execute_properties_exclude_empty_strings_disabled(self) -> None:
         task = MockExecuteExcludePropertyFalse()
+        execution_properties = cast(WorkerImpl.ExecutionProperties, task.ExecutionProperties())
+
         response: DictAny = DictAny({
             'response': {
                 'string_list': ['a', 'b', 'c'],
@@ -141,11 +149,15 @@ class TestTaskGenerator:
             }
         })
 
-        result = task.__class__._execute_func(task=copy.deepcopy(task.TEST_WORKER_INPUTS))
+        result = task.__class__._execute_func(
+            task=copy.deepcopy(task.TEST_WORKER_INPUTS),
+            execution_properties=execution_properties
+        )
         assert result.get('output') == response
 
     def test_execute_properties_transform_string_to_json_valid_disabled(self) -> None:
         task = MockExecuteTransformPropertyFalse()
+        execution_properties = cast(WorkerImpl.ExecutionProperties, task.ExecutionProperties())
 
         test_worker_inputs: DictAny = DictAny({
             'inputData': {
@@ -165,13 +177,58 @@ class TestTaskGenerator:
             }
         })
 
-        result = task.__class__._execute_func(task=copy.deepcopy(test_worker_inputs))
+        result = task.__class__._execute_func(
+            task=copy.deepcopy(test_worker_inputs),
+            execution_properties=execution_properties
+        )
         assert result.get('output') == response
 
     def test_execute_properties_transform_string_to_json_valid_disabled_exception(self) -> None:
 
         task = MockExecuteTransformPropertyFalse()
+        execution_properties = cast(WorkerImpl.ExecutionProperties, task.ExecutionProperties())
         task.ExecutionProperties.model_fields['transform_string_to_json_valid'].default = False
 
         with raises(ValidationError):
-            task.__class__._execute_func(task=copy.deepcopy(task.TEST_WORKER_INPUTS))
+            task.__class__._execute_func(
+                task=copy.deepcopy(task.TEST_WORKER_INPUTS),
+                execution_properties=execution_properties
+            )
+
+    def test_execute_handle(self) -> None:
+
+        worker_input_dict: DictAny = dict(
+            inputData=dict(
+            )
+        )
+
+        response: DictAny = DictAny({
+           'status': 'FAILED',
+           'output': {
+              'output': {
+                 'error': {
+                    'string_list': {
+                       'type': 'missing',
+                       'message': 'Field required'
+                    },
+                    'and_dict': {
+                       'type': 'missing',
+                       'message': 'Field required'
+                    },
+                    'required_string': {
+                       'type': 'missing',
+                       'message': 'Field required'
+                    }
+                 }
+              }
+           },
+           'logs': [
+              "ValidationError: {'string_list': {'type': 'missing', 'message': 'Field required'}, "
+              "'and_dict': {'type': 'missing', 'message': 'Field required'}, 'required_string': "
+              "{'type': 'missing', 'message': 'Field required'}}"
+           ]
+        })
+
+        worker = MockExecuteProperties()
+        result = worker._execute_wrapper(task=worker_input_dict)
+        assert result == response

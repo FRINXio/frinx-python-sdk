@@ -3,10 +3,12 @@ import time
 import traceback
 from abc import ABC
 from abc import abstractmethod
+from functools import reduce
 from json import JSONDecodeError
 from json import loads as json_loads
 from typing import Any
 from typing import TypeAlias
+from typing import Union
 
 from pydantic import ValidationError
 
@@ -207,6 +209,32 @@ class WorkerImpl(ABC):
         pass
 
     @classmethod
+    def exception_response_handler(cls, error: Exception, **kwargs: Any) -> TaskResult[WorkerOutput]:
+
+        error_name: str = error.__class__.__name__
+        execution_properties: TaskExecutionProperties = kwargs.get('execution_properties', TaskExecutionProperties())
+
+        task_result: TaskResult[Any] = TaskResult(
+            status=TaskResultStatus.FAILED,
+            logs=[TaskExecLog(f'{error_name}: {error}')]
+        )
+
+        match error:
+            case ValidationError():
+                formatted_error: DictAny = cls._validate_exception_format(error)
+                task_result.logs = [TaskExecLog(f'{error_name}: {formatted_error}')]
+
+                if execution_properties.pass_worker_input_exception_to_task_output:
+                    task_result.output = cls._parse_exception_output_path_to_dict(
+                        dot_path={
+                            execution_properties.worker_input_exception_task_output_path: formatted_error
+                        }
+                    )
+
+        logger.error('%s error occurred: %s \n%s', error_name, error, str(traceback.format_exc()))
+        return task_result
+
+    @classmethod
     def _execute_wrapper(cls, task: RawTaskIO) -> Any:
         """Wrap the execution of the worker logic.
 
@@ -219,23 +247,25 @@ class WorkerImpl(ABC):
         Returns:
             Any: The task result produced by the worker's execution.
         """
+        execution_properties = cls.ExecutionProperties()
         task_type = str(task.get('taskType'))
         increment_task_poll(metrics, task_type)
+
         try:
             logger.debug('Executing task %s:', task)
-            task_result: RawTaskIO = cls._execute_func(task)
+            task_result: RawTaskIO = cls._execute_func(task, execution_properties)
             logger.debug('Task result %s:', task_result)
             return task_result
         except Exception as error:
-            error_name = type(error).__name__
-            detailed_traceback = str(traceback.format_exc())
             increment_task_execution_error(metrics, task_type, error)
             increment_uncaught_exception(metrics, task_type)
-            logger.error('%s error occurred: %s \n%s', error_name, error, detailed_traceback)
-            return TaskResult(status=TaskResultStatus.FAILED, logs=[TaskExecLog(f'{error_name}: {error}')]).model_dump()
+            return cls.exception_response_handler(
+                error=error,
+                execution_properties=execution_properties
+            ).model_dump()
 
     @classmethod
-    def _execute_func(cls, task: RawTaskIO) -> RawTaskIO:
+    def _execute_func(cls, task: RawTaskIO, execution_properties: ExecutionProperties) -> RawTaskIO:
         """Execute the worker logic and handle error reporting.
 
         This internal method executes the worker logic, transforming the input data as needed,
@@ -248,7 +278,6 @@ class WorkerImpl(ABC):
             RawTaskIO: The raw task data representing the task result.
         """
         input_data: DictAny = task['inputData']
-        execution_properties = cls.ExecutionProperties()
 
         if execution_properties.exclude_empty_inputs:
             logger.debug('Worker input data before removing empty elements: %s:', input_data)
@@ -266,7 +295,6 @@ class WorkerImpl(ABC):
             worker_input._workflow_instance_id = task.get('workflowInstanceId', None)
             worker_input._workflow_type = task.get('workflowType', None)
         except ValidationError as error:
-            logger.error('Validation error occurred: %s', error)
             raise error
 
         if not metrics.settings.metrics_enabled:
@@ -328,3 +356,58 @@ class WorkerImpl(ABC):
             )
             logger.error(error_msg)
             raise TypeError(error_msg)
+
+    @classmethod
+    def _validate_exception_format(cls, error: ValidationError) -> DictAny:
+        """Converts a pydantic.ValidationError loc tuple to a dictionary representing the path or value.
+
+        Args:
+            error (ValidationError): An instance of pydantic.ValidationError.
+
+        Returns:
+            Dict[str, Dict[str, Union[str, int]]]: Formatted information about the error.
+        """
+
+        formatted_error = {}
+
+        def _loc_to_dot_sep(loc: tuple[Union[str, int], ...]) -> str:
+            path: str = ''
+            for i, x in enumerate(loc):
+                if isinstance(x, str):
+                    if i > 0:
+                        path += '.'
+                    path += x
+                elif isinstance(x, int):
+                    path += f'[{x}]'
+                else:
+                    raise TypeError('Unexpected type')
+            return path
+
+        for err in error.errors():
+            formatted_error[str(_loc_to_dot_sep(err['loc']))] = dict(
+                type=err.get('type', 'Unknown'),
+                message=err.get('msg', '')
+            )
+        return formatted_error
+
+    @staticmethod
+    def _parse_exception_output_path_to_dict(dot_path: DictAny) -> DictAny:
+        """Parse a dictionary with keys in dot notation and convert it into a nested dictionary.
+
+        Args:
+            dot_path (DictAny): A dictionary with keys in dot notation.
+
+        Returns:
+            DictAny: A nested dictionary representing the parsed structure.
+
+        Example:
+            >>> input_dict = {'a.b.c': 42, 'x.y': 'hello'}
+            >>> WorkerImpl._parse_exception_output_path_to_dict(input_dict)
+            {'a': {'b': {'c': 42}}, 'x': {'y': 'hello'}}
+        """
+        output: DictAny = {}
+        for key, value in dot_path.items():
+            path = key.split('.')
+            target = reduce(lambda d, k: d.setdefault(k, {}), path[:-1], output)
+            target[path[-1]] = value
+        return output

@@ -70,6 +70,8 @@ class MockExecuteProperties(WorkerImpl):
     class ExecutionProperties(TaskExecutionProperties):
         exclude_empty_inputs: bool = True
         transform_string_to_json_valid: bool = True
+        pass_worker_input_exception_to_task_output: bool = True
+        worker_input_exception_task_output_path: str = 'output.error'
 
     class WorkerDefinition(TaskDefinition):
         name: str = 'EXECUTION_PROPERTIES_task'

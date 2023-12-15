@@ -34,6 +34,7 @@ class TaskResult(BaseModel, Generic[TO]):
 
     model_config = ConfigDict(
         validate_assignment=True,
+        use_enum_values=True
         # alias_generator=snake_to_camel_case,
     )
 
