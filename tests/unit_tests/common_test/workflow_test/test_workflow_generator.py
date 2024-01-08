@@ -88,6 +88,10 @@ class TestWorkflowGenerator:
                     )
                 )
 
+                self.output_parameters = self.WorkflowOutput(
+                    data=self.tasks[0].output_ref()
+                )
+
         test_workflow = HttpRequest(
                 name='Http_request',
                 version=1,
@@ -101,7 +105,7 @@ class TestWorkflowGenerator:
             'labels': ['HTTP'],
             'rbac': ['network-admin'],
             'restartable': True,
-            'output_parameters': {},
+            'output_parameters': {'data': '${http_task.output}'},
             'input_parameters': [
                 '{"uri": {"value": "", "description": "Request url", "type": "string", "options": null}}',
                 '{"contentType": \

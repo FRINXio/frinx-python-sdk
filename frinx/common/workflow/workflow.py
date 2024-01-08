@@ -6,10 +6,12 @@ from abc import abstractmethod
 from enum import Enum
 from typing import Any
 from typing import Optional
+from typing import Union
 
 from pydantic import BaseModel
 from pydantic import ConfigDict
 from pydantic import Field
+from pydantic import field_validator
 
 from frinx.common.conductor_enums import TimeoutPolicy
 from frinx.common.import_workflows import register_workflow
@@ -82,7 +84,7 @@ class WorkflowImpl(BaseModel, ABC):
 
     # PREDEFINED
     restartable: bool = Field(default=False)
-    output_parameters: dict[str, object] = Field(default={})
+    output_parameters: Union[WorkflowOutput, dict[str, object]] = Field(default={})
     input_parameters: list[WorkflowInputField | str] = Field(default=[])
     tasks: list[WorkflowTaskImpl] = Field(default=[])
     timeout_policy: TimeoutPolicy = Field(default=TimeoutPolicy.TIME_OUT_WORKFLOW)
@@ -99,6 +101,12 @@ class WorkflowImpl(BaseModel, ABC):
     owner_email: Optional[str] = Field(default=None)
     variables: Optional[dict[str, Any]] = Field(default=None)
     input_template: dict[str, Any] = Field(default={})
+
+    @field_validator('output_parameters', mode='before')
+    def output_param(cls, data: BaseModel | dict[str, object]) -> dict[str, object]:
+        if isinstance(data, BaseModel):
+            return data.model_dump(exclude_none=True)
+        return data
 
     def __init__(self, **data: Any):
         super().__init__(**data)
