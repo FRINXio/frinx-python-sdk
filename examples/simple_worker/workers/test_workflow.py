@@ -53,7 +53,7 @@ class TestWorkflows(ServiceWorkflowsImpl):
 
         class WorkflowOutput(WorkflowImpl.WorkflowOutput):
             text: str
-            bytes: int
+            bytes: str
 
         def workflow_builder(self, workflow_inputs: WorkflowInput) -> None:
             generate_task = SimpleTask(
@@ -92,8 +92,10 @@ class TestWorkflows(ServiceWorkflowsImpl):
             )
             self.tasks.append(echo_task)
 
-            self.output_parameters['text'] = echo_task.output_ref('output')
-            self.output_parameters['bytes'] = generate_task.output_ref('bytes')
+            self.output_parameters = self.WorkflowOutput(
+                text=echo_task.output_ref('output'),
+                bytes=generate_task.output_ref('bytes')
+            )
 
     class TestForkWorkflow(WorkflowImpl):
         name: str = 'Test_fork_workflow'

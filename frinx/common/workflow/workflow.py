@@ -6,6 +6,7 @@ from abc import abstractmethod
 from enum import Enum
 from typing import Any
 from typing import Optional
+from typing import Union
 
 from pydantic import BaseModel
 from pydantic import ConfigDict
@@ -83,7 +84,7 @@ class WorkflowImpl(BaseModel, ABC):
 
     # PREDEFINED
     restartable: bool = Field(default=False)
-    output_parameters: dict[str, object] | BaseModel = Field(default={})
+    output_parameters: Union[WorkflowOutput, dict[str, object]] = Field(default={})
     input_parameters: list[WorkflowInputField | str] = Field(default=[])
     tasks: list[WorkflowTaskImpl] = Field(default=[])
     timeout_policy: TimeoutPolicy = Field(default=TimeoutPolicy.TIME_OUT_WORKFLOW)
