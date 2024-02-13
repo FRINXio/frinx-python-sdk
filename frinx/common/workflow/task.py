@@ -457,12 +457,13 @@ class SubWorkflowTask(WorkflowTaskImpl):
         match sub_wf_def:
             case SubWorkflowFromDefParam():
                 workflow_inputs = sub_wf_def.name.WorkflowInput().__fields__.items()
-                for key, value in workflow_inputs:
-                    if key not in worker_inputs:
-                        if value.required is False:
-                            pass
-                        else:
-                            raise ValueError(f'Missing input {key}')
+                workflow_keys = [item[0] for item in list(workflow_inputs)]
+                for key in worker_inputs.keys():
+                    if key not in workflow_keys:
+                        error_message = (
+                            f"The key '{key}' used in your subworkflow definition is incorrect. "
+                            f"Ensure your subworkflow includes only the following keys: {', '.join(workflow_keys)}.")
+                        raise ValueError(error_message)
                 values['sub_workflow_param'] = SubWorkflowParam(
                     name=sub_wf_def.name.__fields__['name'].default,
                     version=sub_wf_def.name.__fields__['version'].default,
