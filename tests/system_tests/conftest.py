@@ -11,6 +11,7 @@ from frinx.common.frinx_rest import CONDUCTOR_URL_BASE
 
 LOGGER = logging.getLogger(__name__)
 
+COLLECT_STATS_FOLDER = './ga_workflows_collected_data'
 
 CONDUCTOR_WF_EXEC_RQ: dict[str, Any] = {
     'name': 'Test_workflow',
@@ -50,4 +51,5 @@ def pytest_addoption(parser: pytest.Parser) -> None:
 
 @pytest.fixture(autouse=True)
 def collect_stats_folder(pytestconfig: pytest.Config) -> None:
-    pytest.COLLECT_STATS_FOLDER = pytestconfig.getoption('--collect-stats-folder')
+    global COLLECT_STATS_FOLDER  # noqa: PLW0603
+    COLLECT_STATS_FOLDER = pytestconfig.getoption('--collect-stats-folder')

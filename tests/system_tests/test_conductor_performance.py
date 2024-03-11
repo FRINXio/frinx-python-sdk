@@ -10,6 +10,7 @@ from typing import Optional
 
 import aiohttp
 import pytest
+from conftest import COLLECT_STATS_FOLDER
 from conftest import CONDUCTOR_HEADERS
 from conftest import CONDUCTOR_URL_BASE
 from conftest import exec_wf
@@ -130,7 +131,7 @@ def parse_running_wf_ids(running_wfs: bytes) -> tuple[list[str], int]:
 
 @pytest.mark.asyncio
 async def test_performance_simple_wf(timestamp: Optional[float] = None, context: str = 'simple') -> dict[str, Any]:
-    collect_stats_filename = str(pytest.COLLECT_STATS_FOLDER) + 'conductor_system_tests.json'
+    collect_stats_filename = str(COLLECT_STATS_FOLDER) + 'conductor_system_tests.json'
 
     executions = 1000
     sleep = 4
@@ -191,7 +192,7 @@ async def test_performance_simple_wf(timestamp: Optional[float] = None, context:
 
         assert stats['failed_workflows'] == 0
 
-        if pytest.COLLECT_STATS_FOLDER:
+        if COLLECT_STATS_FOLDER:
             this_function_name = 'test_performance_simple_wf'
             if context == 'simple':
                 this_function_name = 'test_performance_simple_wf'
@@ -225,7 +226,7 @@ async def test_performance_simple_wf_long() -> None:
 
 @pytest.mark.asyncio
 async def test_performance_fork() -> None:
-    collect_stats_filename = str(pytest.COLLECT_STATS_FOLDER) + 'conductor_system_tests.json'
+    collect_stats_filename = str(COLLECT_STATS_FOLDER) + 'conductor_system_tests.json'
 
     executions = 10
     forks = 100
@@ -281,7 +282,7 @@ async def test_performance_fork() -> None:
 
         assert stats['failed_workflows'] == 0
 
-        if pytest.COLLECT_STATS_FOLDER:
+        if COLLECT_STATS_FOLDER:
             this_function_name = 'test_performance_fork'  # Note: possible to use inspect.currentframe().f_code.co_name
             with open(collect_stats_filename) as openfile:
                 json_object = json.load(openfile)
@@ -318,7 +319,7 @@ async def test_performance_fork() -> None:
 
 @pytest.mark.asyncio
 async def test_performance_simple_wf_external_storage() -> None:
-    collect_stats_filename = str(pytest.COLLECT_STATS_FOLDER) + 'conductor_system_tests.json'
+    collect_stats_filename = str(COLLECT_STATS_FOLDER) + 'conductor_system_tests.json'
 
     executions = 200
     sleep = 4
@@ -370,7 +371,7 @@ async def test_performance_simple_wf_external_storage() -> None:
 
         assert stats['failed_workflows'] == 0
 
-        if pytest.COLLECT_STATS_FOLDER:
+        if COLLECT_STATS_FOLDER:
             this_function_name = 'test_performance_simple_wf_external_storage'
             with open(collect_stats_filename) as openfile:
                 json_object = json.load(openfile)
