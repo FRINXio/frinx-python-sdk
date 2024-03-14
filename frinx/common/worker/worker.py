@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 import time
 import traceback
@@ -6,13 +8,13 @@ from abc import abstractmethod
 from functools import reduce
 from json import JSONDecodeError
 from json import loads as json_loads
+from typing import TYPE_CHECKING
 from typing import Any
 from typing import TypeAlias
 from typing import Union
 
 from pydantic import ValidationError
 
-from frinx.client.frinx_conductor_wrapper import FrinxConductorWrapper
 from frinx.common.conductor_enums import TaskResultStatus
 from frinx.common.telemetry.common import increment_task_execution_error
 from frinx.common.telemetry.common import increment_task_poll
@@ -31,6 +33,10 @@ from frinx.common.worker.task_def import TaskExecutionProperties
 from frinx.common.worker.task_def import TaskInput
 from frinx.common.worker.task_def import TaskOutput
 from frinx.common.worker.task_result import TaskResult
+
+if TYPE_CHECKING:
+    from frinx.client.v2.frinx_conductor_wrapper import FrinxConductorWrapper
+
 
 logger = logging.getLogger(__name__)
 metrics = Metrics()
@@ -98,20 +104,19 @@ class WorkerImpl(ABC):
         self.task_def_template = task_def_template
         self.task_def = self._task_definition_builder(self.task_def_template)
 
-    @classmethod
-    def _param_parser(cls) -> Any:
+    def _param_parser(self) -> Any:
         params = {}
-        for param in cls.WorkerDefinition.model_fields.values():
+        for param in self.WorkerDefinition.model_fields.values():
             params[param.alias] = param.default
             if param.alias == 'inputKeys':
                 values = []
-                for key, field in cls.WorkerInput.model_fields.items():
+                for key, field in self.WorkerInput.model_fields.items():
                     values.append(field.alias or key)
                 if values:
                     params[param.alias] = values
             if param.alias == 'outputKeys':
                 values = []
-                for key, field in cls.WorkerOutput.model_fields.items():
+                for key, field in self.WorkerOutput.model_fields.items():
                     values.append(field.alias or key)
                 if values:
                     params[param.alias] = values
@@ -126,9 +131,8 @@ class WorkerImpl(ABC):
 
         return params
 
-    @classmethod
     def _task_definition_builder(
-            cls, task_def_template: type[BaseTaskdef] | type[DefaultTaskDefinition] | None = None
+            self, task_def_template: type[BaseTaskdef] | type[DefaultTaskDefinition] | None = None
     ) -> TaskDefinition:
         """Build the task definition for the worker.
 
@@ -142,11 +146,11 @@ class WorkerImpl(ABC):
         Returns:
             TaskDefinition: The task definition for the worker.
         """
-        cls._validate()
+        self._validate()
 
-        params = cls._param_parser()
+        params = self._param_parser()
 
-        for k, v in cls.WorkerInput.model_fields.items():
+        for k, v in self.WorkerInput.model_fields.items():
             if v.annotation == ListStr \
                     or v.annotation == DictAny \
                     or v.annotation == dict \
@@ -182,12 +186,7 @@ class WorkerImpl(ABC):
         """
         logger.info('%s', self.task_def.name)
         logger.debug('Worker definition: %s', self.task_def.model_dump(by_alias=True, exclude_none=True))
-
-        conductor_client.register(
-            task_type=self.task_def.name,
-            task_definition=self.task_def.model_dump(by_alias=True, exclude_none=True),
-            exec_function=self._execute_wrapper,
-        )
+        conductor_client.register(task_blueprint=self)
 
     @abstractmethod
     def execute(self, worker_input: Any) -> TaskResult[Any]:
@@ -208,8 +207,7 @@ class WorkerImpl(ABC):
         # https://mypy.readthedocs.io/en/stable/common_issues.html#incompatible-overrides
         pass
 
-    @classmethod
-    def exception_response_handler(cls, error: Exception, **kwargs: Any) -> TaskResult[WorkerOutput]:
+    def exception_response_handler(self, error: Exception, **kwargs: Any) -> TaskResult[WorkerOutput]:
 
         error_name: str = error.__class__.__name__
         execution_properties: TaskExecutionProperties = kwargs.get('execution_properties', TaskExecutionProperties())
@@ -221,11 +219,11 @@ class WorkerImpl(ABC):
 
         match error:
             case ValidationError():
-                formatted_error: DictAny = cls._validate_exception_format(error)
+                formatted_error: DictAny = self._validate_exception_format(error)
                 task_result.logs = [TaskExecLog(f'{error_name}: {formatted_error}')]
 
                 if execution_properties.pass_worker_input_exception_to_task_output:
-                    task_result.output = cls._parse_exception_output_path_to_dict(
+                    task_result.output = self._parse_exception_output_path_to_dict(
                         dot_path={
                             execution_properties.worker_input_exception_task_output_path: formatted_error
                         }
@@ -234,8 +232,7 @@ class WorkerImpl(ABC):
         logger.error('%s error occurred: %s \n%s', error_name, error, str(traceback.format_exc()))
         return task_result
 
-    @classmethod
-    def _execute_wrapper(cls, task: RawTaskIO) -> Any:
+    def execute_wrapper(self, task: RawTaskIO) -> Any:
         """Wrap the execution of the worker logic.
 
         This internal method wraps the execution of the worker logic, handling the task type
@@ -247,25 +244,24 @@ class WorkerImpl(ABC):
         Returns:
             Any: The task result produced by the worker's execution.
         """
-        execution_properties = cls.ExecutionProperties()
+        execution_properties = self.ExecutionProperties()
         task_type = str(task.get('taskType'))
         increment_task_poll(metrics, task_type)
 
         try:
             logger.debug('Executing task %s:', task)
-            task_result: RawTaskIO = cls._execute_func(task, execution_properties)
+            task_result: RawTaskIO = self._execute_func(task, execution_properties)
             logger.debug('Task result %s:', task_result)
             return task_result
         except Exception as error:
             increment_task_execution_error(metrics, task_type, error)
             increment_uncaught_exception(metrics, task_type)
-            return cls.exception_response_handler(
+            return self.exception_response_handler(
                 error=error,
                 execution_properties=execution_properties
             ).model_dump()
 
-    @classmethod
-    def _execute_func(cls, task: RawTaskIO, execution_properties: ExecutionProperties) -> RawTaskIO:
+    def _execute_func(self, task: RawTaskIO, execution_properties: ExecutionProperties) -> RawTaskIO:
         """Execute the worker logic and handle error reporting.
 
         This internal method executes the worker logic, transforming the input data as needed,
@@ -286,11 +282,11 @@ class WorkerImpl(ABC):
 
         if execution_properties.transform_string_to_json_valid:
             logger.debug('Worker input data before json serialization: %s:', input_data)
-            input_data = cls._transform_input_data_to_json(input_data)
+            input_data = self._transform_input_data_to_json(input_data)
             logger.debug('Worker input data after json serialization: %s:', input_data)
 
         try:
-            worker_input = cls.WorkerInput.model_validate(input_data)
+            worker_input = self.WorkerInput.model_validate(input_data)
             worker_input._task_id = task.get('taskId', None)
             worker_input._workflow_instance_id = task.get('workflowInstanceId', None)
             worker_input._workflow_type = task.get('workflowType', None)
@@ -298,16 +294,15 @@ class WorkerImpl(ABC):
             raise error
 
         if not metrics.settings.metrics_enabled:
-            return cls.execute(cls, worker_input).model_dump()  # type: ignore[arg-type]
+            return self.execute(worker_input).model_dump()
 
         start_time = time.time()
-        task_result: RawTaskIO = cls.execute(cls, worker_input).model_dump()  # type: ignore[arg-type]
+        task_result: RawTaskIO = self.execute(worker_input).model_dump()
         finish_time = time.time()
         record_task_execute_time(metrics, str(task.get('taskType')), finish_time - start_time)
         return task_result
 
-    @classmethod
-    def _transform_input_data_to_json(cls, input_data: DictAny) -> DictAny:
+    def _transform_input_data_to_json(self, input_data: DictAny) -> DictAny:
         """Transform input data to JSON format.
 
         This internal method transforms input data value to JSON format for specific fields in the
@@ -319,7 +314,7 @@ class WorkerImpl(ABC):
         Returns:
             DictAny: The transformed input data dictionary.
         """
-        for k, v in cls.WorkerInput.model_fields.items():
+        for k, v in self.WorkerInput.model_fields.items():
             if v.annotation == ListStr \
                     or v.annotation == DictAny \
                     or v.annotation == dict \
@@ -331,8 +326,7 @@ class WorkerImpl(ABC):
                         raise Exception(f'Worker input {k} is invalid JSON, {e}')
         return input_data
 
-    @classmethod
-    def _validate(cls) -> None:
+    def _validate(self) -> None:
         """Validate the WorkerInput and WorkerOutput subclasses.
 
         This method checks that the WorkerInput and WorkerOutput classes are subclasses of TaskInput
@@ -341,24 +335,23 @@ class WorkerImpl(ABC):
         Returns:
             None
         """
-        if not issubclass(cls.WorkerInput, TaskInput):
+        if not issubclass(self.WorkerInput, TaskInput):
             error_msg = (
                 "Expecting task input model to be a subclass of "
-                f"'{TaskInput.__qualname__}', not '{cls.WorkerInput.__qualname__}'"
+                f"'{TaskInput.__qualname__}', not '{self.WorkerInput.__qualname__}'"
             )
             logger.error(error_msg)
             raise TypeError(error_msg)
 
-        if not issubclass(cls.WorkerOutput, TaskOutput):
+        if not issubclass(self.WorkerOutput, TaskOutput):
             error_msg = (
                 "Expecting task output model to be a subclass of "
-                f"'{TaskOutput.__qualname__}', not '{cls.WorkerOutput.__qualname__}'"
+                f"'{TaskOutput.__qualname__}', not '{self.WorkerOutput.__qualname__}'"
             )
             logger.error(error_msg)
             raise TypeError(error_msg)
 
-    @classmethod
-    def _validate_exception_format(cls, error: ValidationError) -> DictAny:
+    def _validate_exception_format(self, error: ValidationError) -> DictAny:
         """Converts a pydantic.ValidationError loc tuple to a dictionary representing the path or value.
 
         Args:
