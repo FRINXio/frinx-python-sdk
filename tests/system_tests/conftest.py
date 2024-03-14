@@ -11,7 +11,7 @@ from frinx.common.frinx_rest import CONDUCTOR_URL_BASE
 
 LOGGER = logging.getLogger(__name__)
 
-COLLECT_STATS_FOLDER = './ga_workflows_collected_data'
+COLLECT_STATS_FOLDER = None
 
 CONDUCTOR_WF_EXEC_RQ: dict[str, Any] = {
     'name': 'Test_workflow',
