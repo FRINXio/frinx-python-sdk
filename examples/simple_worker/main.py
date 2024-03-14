@@ -35,7 +35,6 @@ def main() -> None:
 
     Metrics(settings=MetricsSettings(metrics_enabled=True))
 
-    from frinx.client.frinx_conductor_wrapper import FrinxConductorWrapper
     from frinx.common.frinx_rest import CONDUCTOR_HEADERS
     from frinx.common.frinx_rest import CONDUCTOR_URL_BASE
 
