@@ -3,7 +3,6 @@ from __future__ import annotations
 import logging
 import time
 import traceback
-from abc import ABC
 from abc import abstractmethod
 from functools import reduce
 from json import JSONDecodeError
@@ -45,7 +44,7 @@ RawTaskIO: TypeAlias = dict[str, Any]
 TaskExecLog: TypeAlias = str
 
 
-class WorkerImpl(ABC):
+class WorkerImpl:
     """Abstract base class representing a worker implementation.
 
     This class serves as the base class for all worker implementations that handle
@@ -103,6 +102,14 @@ class WorkerImpl(ABC):
     ) -> None:
         self.task_def_template = task_def_template
         self.task_def = self._task_definition_builder(self.task_def_template)
+
+        # TODO maybe exist better way how to handle this case
+        for attr_name, attr_value in self.__class__.__dict__.items():
+            if (not attr_name.startswith('__')
+                    and not callable(attr_value)
+                    and not isinstance(attr_value, classmethod)
+                    and not isinstance(attr_value, staticmethod)):
+                self.__setattr__(attr_name, attr_value)
 
     def _param_parser(self) -> Any:
         params = {}
@@ -315,10 +322,11 @@ class WorkerImpl(ABC):
             DictAny: The transformed input data dictionary.
         """
         for k, v in self.WorkerInput.model_fields.items():
-            if v.annotation == ListStr \
-                    or v.annotation == DictAny \
-                    or v.annotation == dict \
-                    or v.annotation == DictStr:
+            if v.annotation in (
+                list, ListStr, dict, DictStr, DictAny, Union[DictStr, None],
+                Union[ListStr, None], Union[DictAny, None],
+                Union[list, None], Union[dict, None]
+            ):
                 if type(input_data.get(k)) == str:
                     try:
                         input_data[k] = json_loads(str(input_data.get(k)))
