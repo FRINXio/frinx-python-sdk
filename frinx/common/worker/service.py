@@ -1,4 +1,10 @@
-from frinx.client.frinx_conductor_wrapper import FrinxConductorWrapper
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from frinx.client.v2.frinx_conductor_wrapper import FrinxConductorWrapper
+
 from frinx.common.worker.worker import WorkerImpl
 
 

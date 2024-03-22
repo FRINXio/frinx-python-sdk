@@ -130,7 +130,7 @@ class TestTaskGenerator:
             }
         })
 
-        result = task.__class__._execute_func(
+        result = task._execute_func(
             task=copy.deepcopy(task.TEST_WORKER_INPUTS),
             execution_properties=execution_properties
         )
@@ -149,7 +149,7 @@ class TestTaskGenerator:
             }
         })
 
-        result = task.__class__._execute_func(
+        result = task._execute_func(
             task=copy.deepcopy(task.TEST_WORKER_INPUTS),
             execution_properties=execution_properties
         )
@@ -177,7 +177,7 @@ class TestTaskGenerator:
             }
         })
 
-        result = task.__class__._execute_func(
+        result = task._execute_func(
             task=copy.deepcopy(test_worker_inputs),
             execution_properties=execution_properties
         )
@@ -190,7 +190,7 @@ class TestTaskGenerator:
         task.ExecutionProperties.model_fields['transform_string_to_json_valid'].default = False
 
         with raises(ValidationError):
-            task.__class__._execute_func(
+            task._execute_func(
                 task=copy.deepcopy(task.TEST_WORKER_INPUTS),
                 execution_properties=execution_properties
             )
@@ -230,5 +230,5 @@ class TestTaskGenerator:
         })
 
         worker = MockExecuteProperties()
-        result = worker._execute_wrapper(task=worker_input_dict)
+        result = worker.execute_wrapper(task=worker_input_dict)
         assert result == response

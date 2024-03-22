@@ -1,7 +1,7 @@
 import logging
 import os
 
-from frinx.client.frinx_conductor_wrapper import FrinxConductorWrapper
+from frinx.client.v2.frinx_conductor_wrapper import FrinxConductorWrapper
 from frinx.common.logging import logging_common
 from frinx.common.logging.logging_common import LoggerConfig
 from frinx.common.logging.logging_common import Root
@@ -35,7 +35,6 @@ def main() -> None:
 
     Metrics(settings=MetricsSettings(metrics_enabled=True))
 
-    from frinx.client.frinx_conductor_wrapper import FrinxConductorWrapper
     from frinx.common.frinx_rest import CONDUCTOR_HEADERS
     from frinx.common.frinx_rest import CONDUCTOR_URL_BASE
 
