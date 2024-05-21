@@ -120,6 +120,7 @@ class TaskExecutionProperties(BaseModel):
     exclude_empty_inputs: bool = False
     transform_string_to_json_valid: bool = False
     pass_worker_input_exception_to_task_output: bool = False
+    pass_task_error_to_task_output: bool = True
     worker_input_exception_task_output_path: str = 'result.error'
 
     model_config = ConfigDict(
