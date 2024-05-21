@@ -227,10 +227,10 @@ class WorkerImpl:
         if execution_properties.pass_task_error_to_task_output:
             match error:
                 case ValidationError():
-                    error_info: DictAny = self._validate_exception_format(error)
+                    error_info: str | DictAny = self._validate_exception_format(error)
                 case _:
-                    error_info: str = str(error)
-            task_result.output = TaskOutput(error={'error_name': error_name, 'error_info': error_info})
+                    error_info = str(error)
+            task_result.output = TaskOutput(**{'error': {'error_name': error_name, 'error_info': error_info}})
         else:
             match error:
                 case ValidationError():
