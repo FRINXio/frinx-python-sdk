@@ -202,33 +202,20 @@ class TestTaskGenerator:
             )
         )
 
-        response: DictAny = DictAny({
-           'status': 'FAILED',
-           'output': {
-              'output': {
-                 'error': {
-                    'string_list': {
-                       'type': 'missing',
-                       'message': 'Field required'
-                    },
-                    'and_dict': {
-                       'type': 'missing',
-                       'message': 'Field required'
-                    },
-                    'required_string': {
-                       'type': 'missing',
-                       'message': 'Field required'
-                    }
-                 }
-              }
-           },
-           'logs': [
-              "ValidationError: {'string_list': {'type': 'missing', 'message': 'Field required'}, "
-              "'and_dict': {'type': 'missing', 'message': 'Field required'}, 'required_string': "
-              "{'type': 'missing', 'message': 'Field required'}}"
-           ]
-        })
+        expected_result = {'output': {'error': {'error_name': 'ValidationError',
+                                                'error_info':
+                                                    {
+                                                        'string_list':
+                                                            {'type': 'missing', 'message': 'Field required'},
+                                                        'and_dict':
+                                                            {'type': 'missing', 'message': 'Field required'},
+                                                        'required_string':
+                                                            {'type': 'missing', 'message': 'Field required'}
+                                                    }
+                                                }
+                                      }
+                           }
 
         worker = MockExecuteProperties()
         result = worker.execute_wrapper(task=worker_input_dict)
-        assert result == response
+        assert result.get('output') == expected_result

@@ -224,19 +224,21 @@ class WorkerImpl:
             logs=[TaskExecLog(f'{error_name}: {error}')]
         )
 
-        match error:
-            case ValidationError():
-                formatted_error: DictAny = self._validate_exception_format(error)
-                task_result.logs = [TaskExecLog(f'{error_name}: {formatted_error}')]
+        if execution_properties.pass_worker_input_exception_to_task_output:
+            match error:
+                case ValidationError():
+                    error_info: str | DictAny = self._validate_exception_format(error)
+                case _:
+                    error_info = str(error)
 
-                if execution_properties.pass_worker_input_exception_to_task_output:
-                    task_result.output = self._parse_exception_output_path_to_dict(
-                        dot_path={
-                            execution_properties.worker_input_exception_task_output_path: formatted_error
-                        }
-                    )
+            error_dict = {'error_name': error_name, 'error_info': error_info}
+            error_dict_with_output_path = self._parse_exception_output_path_to_dict(
+                dot_path={execution_properties.pass_task_error_to_task_output_path: error_dict})
 
-        logger.error('%s error occurred: %s \n%s', error_name, error, str(traceback.format_exc()))
+            task_result.output = TaskOutput(**error_dict_with_output_path)
+
+            logger.error('%s error occurred: %s \n%s', error_name, error, str(traceback.format_exc()))
+
         return task_result
 
     def execute_wrapper(self, task: RawTaskIO) -> Any:

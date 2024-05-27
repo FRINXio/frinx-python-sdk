@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from typing import Any
 from typing import Optional
 
 from pydantic import BaseModel
@@ -119,8 +120,16 @@ class FailedTaskError(ConductorWorkerError):
 class TaskExecutionProperties(BaseModel):
     exclude_empty_inputs: bool = False
     transform_string_to_json_valid: bool = False
-    pass_worker_input_exception_to_task_output: bool = False
-    worker_input_exception_task_output_path: str = 'result.error'
+    pass_task_error_to_task_output: bool = True
+    pass_task_error_to_task_output_path: str = 'result.error'
+    pass_worker_input_exception_to_task_output: bool = Field(
+        default=False,
+        description='deprecation_flag',
+    )
+    worker_input_exception_task_output_path: str = Field(
+        default='result.error',
+        description='deprecation_flag',
+    )
 
     model_config = ConfigDict(
         frozen=True,
@@ -129,3 +138,34 @@ class TaskExecutionProperties(BaseModel):
         arbitrary_types_allowed=False,
         populate_by_name=False
     )
+
+    def __init__(self, **data: Any) -> None:
+        super().__init__(**data)
+        self._handle_deprecated_fields()
+
+    def _handle_deprecated_fields(self) -> None:
+        import logging
+        import warnings
+
+        logger = logging.getLogger(__name__)
+
+        if self.model_fields['pass_worker_input_exception_to_task_output'].description != 'deprecation_flag':
+            message = (
+                "The 'pass_worker_input_exception_to_task_output' field is deprecated and should not be used. "
+                "Use 'pass_task_error_to_task_output' instead."
+            )
+            warnings.warn(message, DeprecationWarning)
+            logger.warning(message)
+            object.__setattr__(self, 'pass_task_error_to_task_output',
+                               self.pass_worker_input_exception_to_task_output)
+
+        if self.model_fields['worker_input_exception_task_output_path'].description != 'deprecation_flag':
+            message = (
+                "The 'worker_input_exception_task_output_path' field is deprecated and should not be used. "
+                "Use 'pass_task_error_to_task_output_path' instead."
+            )
+            warnings.warn(message, DeprecationWarning)
+            logger.warning(message)
+
+            object.__setattr__(self, 'pass_task_error_to_task_output_path',
+                               self.worker_input_exception_task_output_path)
