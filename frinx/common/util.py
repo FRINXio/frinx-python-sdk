@@ -80,7 +80,7 @@ def remove_empty_elements_from_dict(any_dict: DictAny) -> Any:
                 case list():
                     cleaned[k] = [item for item in v if item]
                 case _:
-                    if v:
+                    if v is not None:
                         cleaned[k] = v
         return cleaned
     return recursive_cleanup(any_dict)
