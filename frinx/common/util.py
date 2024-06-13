@@ -58,7 +58,7 @@ def remove_empty_elements_from_root_dict(any_dict: DictAny) -> DictAny:
     Returns:
         Dict[str, Any]: A new dictionary with empty elements removed.
     """
-    return dict((k, v) for k, v in any_dict.items() if v)
+    return dict((k, v) for k, v in any_dict.items() if v is not None)
 
 
 def remove_empty_elements_from_dict(any_dict: DictAny) -> Any:
@@ -78,7 +78,7 @@ def remove_empty_elements_from_dict(any_dict: DictAny) -> Any:
                 case dict():
                     cleaned[k] = recursive_cleanup(v)
                 case list():
-                    cleaned[k] = [item for item in v if item]
+                    cleaned[k] = [item for item in v if item is not None]
                 case _:
                     if v is not None:
                         cleaned[k] = v
