@@ -48,6 +48,11 @@ def normalize_base_url(url: str) -> str:
     return url.removesuffix('/')
 
 
+def is_input_valid(item: Any) -> Any:
+    """An item is considered valid if it is not None and not an empty string."""
+    return item is not None and item != ''  # noqa PLC1901
+
+
 def remove_empty_elements_from_root_dict(any_dict: DictAny) -> DictAny:
     """
     Removes empty elements (None, empty dictionaries, or empty lists) from a dictionary root.
@@ -58,7 +63,7 @@ def remove_empty_elements_from_root_dict(any_dict: DictAny) -> DictAny:
     Returns:
         Dict[str, Any]: A new dictionary with empty elements removed.
     """
-    return dict((k, v) for k, v in any_dict.items() if v is not None and v)
+    return dict((k, v) for k, v in any_dict.items() if is_input_valid(v))
 
 
 def remove_empty_elements_from_dict(any_dict: DictAny) -> Any:
@@ -78,9 +83,9 @@ def remove_empty_elements_from_dict(any_dict: DictAny) -> Any:
                 case dict():
                     cleaned[k] = recursive_cleanup(v)
                 case list():
-                    cleaned[k] = [item for item in v if item is not None and item]
+                    cleaned[k] = [item for item in v if item]
                 case _:
-                    if v is not None and v:
+                    if is_input_valid(v):
                         cleaned[k] = v
         return cleaned
     return recursive_cleanup(any_dict)
