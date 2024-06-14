@@ -17,10 +17,13 @@ from dataclasses import dataclass
 from threading import Thread
 from typing import Any
 from typing import TypeAlias
+from urllib.parse import urlparse
+from urllib.parse import urlunparse
 
 import requests
 
 from frinx.client.v2.conductor import WFClientMgr
+from frinx.common.frinx_rest import CONDUCTOR_URL_BASE
 from frinx.common.worker.worker import WorkerImpl
 
 logger = logging.getLogger(__name__)
@@ -195,6 +198,13 @@ class FrinxConductorWrapper:
 
             if 'uri' not in location:
                 raise Exception('Unexpected output for external payload location: %s' % location)
+
+            # Update the scheme and netloc of the URI in external payload location if it differs from CONDUCTOR_URL_BASE
+            parsed_uri = urlparse(str(location.get('uri')))
+            parsed_conductor_url = urlparse(str(CONDUCTOR_URL_BASE))
+            if parsed_uri.netloc != parsed_conductor_url.netloc:
+                location['uri'] = urlunparse(
+                    parsed_uri._replace(scheme=parsed_conductor_url.scheme, netloc=parsed_conductor_url.netloc))
 
             # Replace placeholder with real output
             task.pop(self.task_client.EXTERNAL_INPUT_KEY)
