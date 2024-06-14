@@ -199,6 +199,7 @@ class FrinxConductorWrapper:
             if 'uri' not in location:
                 raise Exception('Unexpected output for external payload location: %s' % location)
 
+            # Needed primarily for local development when workers are run outside of containers.
             # Update the scheme and netloc of the URI in external payload location if it differs from CONDUCTOR_URL_BASE
             parsed_uri = urlparse(str(location.get('uri')))
             parsed_conductor_url = urlparse(str(CONDUCTOR_URL_BASE))
