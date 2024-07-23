@@ -24,11 +24,17 @@ import requests
 
 from frinx.client.v2.conductor import WFClientMgr
 from frinx.common.frinx_rest import CONDUCTOR_URL_BASE
+from frinx.common.logging.task_logging import TaskLogHandler
 from frinx.common.worker.worker import WorkerImpl
 
 logger = logging.getLogger(__name__)
 hostname = socket.gethostname()
 RawTaskIO: TypeAlias = dict[str, Any]
+
+task_logger = logging.getLogger('task_logger')
+task_logger.propagate = False
+task_log_handler = TaskLogHandler(max_capacity=100, max_message_length=15000)
+task_logger.addHandler(task_log_handler)
 
 
 @dataclass
@@ -238,6 +244,7 @@ class FrinxConductorWrapper:
 
     def execute(self, task: RawTaskIO, task_blueprint: WorkerImpl) -> None:
         try:
+            task_log_handler.set_taskname_for_thread(task['taskType'])
             logger.info('Executing a task %s', task['taskId'])
             resp = task_blueprint.execute_wrapper(task)
 
@@ -248,6 +255,7 @@ class FrinxConductorWrapper:
             task['status'] = resp['status']
             task['outputData'] = resp.get('output', {})
             task['logs'] = resp.get('logs', [])
+            task['logs'].extend(task_log_handler.get_logs())
 
             logger.debug('Executing a task %s, response: %s', task['taskId'], resp)
             logger.debug('Executing a task %s, task body: %s', task['taskId'], task)
