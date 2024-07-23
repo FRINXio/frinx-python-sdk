@@ -224,7 +224,7 @@ class WorkerImpl:
             logs=[TaskExecLog(f'{error_name}: {error}')]
         )
 
-        if execution_properties.pass_worker_input_exception_to_task_output:
+        if execution_properties.pass_task_error_to_task_output:
             match error:
                 case ValidationError():
                     error_info: str | DictAny = self._validate_exception_format(error)
