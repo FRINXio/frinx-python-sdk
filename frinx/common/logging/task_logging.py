@@ -23,10 +23,10 @@ class TaskLogHandler(logging.Handler):
         self.max_message_length: int = max_message_length
         self.thread_data = threading.local()
         self.thread_data.log_queue = deque(maxlen=self.max_capacity)
-        self.thread_data.task_name = 'Unknown'
         self.formatter = logging.Formatter('%(levelname)s: %(message)s')
         self.console_formatter = logging.Formatter(
-            '%(asctime)s | %(threadName)s | %(levelname)s | task: %(taskname)s | %(message)s', datefmt='%F %T')
+            '%(asctime)s | %(threadName)s | %(levelname)s | %(task_info)s | %(message)s',
+            datefmt='%F %T')
         self.console_handler = logging.StreamHandler()
         self.console_handler.setFormatter(self.console_formatter)
 
@@ -38,10 +38,7 @@ class TaskLogHandler(logging.Handler):
         if not hasattr(self.thread_data, 'log_queue'):
             self._setup_thread_logging()
 
-        if not hasattr(self.thread_data, 'task_name'):
-            self.thread_data.task_name = 'Unknown'
-
-        record.taskname = self.thread_data.task_name
+        record.task_info = getattr(self.thread_data, 'task_info', 'Unknown')
 
         formatted_record: str = self.format(record)
         truncated_record: str = self._truncate_message(formatted_record)
@@ -63,11 +60,12 @@ class TaskLogHandler(logging.Handler):
         """
         self.thread_data.log_queue = deque(maxlen=self.max_capacity)
 
-    def set_taskname_for_thread(self, task_name: str) -> None:
+    def set_task_info_for_thread(self, *args: str) -> None:
         """
-        Set the task name for the current thread.
+        Set task-specific information for the current thread.
         """
-        self.thread_data.task_name = task_name
+        delimiter: str = ' '
+        self.thread_data.task_info = delimiter.join(str(arg) for arg in args)
 
     def get_logs(self, clear: bool = True) -> list[str]:
         """
@@ -90,3 +88,10 @@ class TaskLogHandler(logging.Handler):
         """
         if hasattr(self.thread_data, 'task_name'):
             del self.thread_data.task_name
+
+
+# Task logger setup
+task_log_handler = TaskLogHandler(max_capacity=100, max_message_length=15000)
+task_logger = logging.getLogger('task_logger')
+task_logger.addHandler(task_log_handler)
+task_logger.propagate = False
