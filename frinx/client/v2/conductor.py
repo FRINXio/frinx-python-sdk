@@ -88,9 +88,9 @@ class BaseClient:
         return self.__check_for_success(resp)
 
     def make_url(self, urlformat: str | None = None, *argv: Any) -> Any:
-        url = self.base_resource + '/'
+        url = self.base_resource
         if urlformat:
-            url += urlformat.format(*argv)
+            url +=  '/' + urlformat.format(*argv)
         return url
 
     @staticmethod
