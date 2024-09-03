@@ -45,6 +45,9 @@ INVENTORY_HEADERS = MappingProxyType(
 SCHELLAR_HEADERS = MappingProxyType({
     'Content-Type': 'application/json',
     'Accept': 'application/json',
+    'x-tenant-id': X_TENANT_ID,
+    'from': X_FROM,
+    'x-auth-user-groups': X_AUTH_USER_GROUP
 })
 
 ADDITIONAL_UNICONFIG_REQUEST_PARAMS = MappingProxyType(
