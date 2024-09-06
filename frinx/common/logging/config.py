@@ -1,18 +1,8 @@
 import logging.config
-import os
-from pathlib import Path
 
-from pydantic_settings import BaseSettings
-
+from frinx.common.logging.root_logger import root_log_handler
+from frinx.common.logging.settings import LoggerSettings
 from frinx.common.type_aliases import DictAny
-
-
-class LoggerSettings(BaseSettings):
-    LOG_FILE_PATH: Path = Path(os.environ.get('LOG_FILE_PATH', '/tmp/workers.log'))
-    DEFAULT_LOG_LEVEL: str = os.environ.get('LOG_LEVEL', 'INFO').upper()
-    DEFAULT_HANDLERS: list[str] = ['file', 'console']
-    LOG_FORMAT_DEFAULT: str = '%(asctime)s | %(threadName)s | %(levelname)s | %(source)s | %(message)s'
-    LOG_FORMAT_VERBOSE: str = '%(asctime)s [%(levelname)s] %(name)s [%(filename)s:%(lineno)d]: %(message)s'
 
 
 class LoggerConfig:
@@ -32,6 +22,7 @@ class LoggerConfig:
             return  # Prevent reconfiguration
 
         logging.config.dictConfig(self.generate_logging_config())
+        logging.getLogger().addHandler(root_log_handler)
         LoggerConfig._setup_done = True
 
     def generate_logging_config(self) -> DictAny:
@@ -58,29 +49,10 @@ class LoggerConfig:
                     'level': self.level,
                     'formatter': 'verbose_formatter',
                 },
-                'console': {
-                    'class': 'logging.StreamHandler',
-                    'level': self.level,
-                    'formatter': 'default_formatter',
-                },
-                # Prefer to configure RootLogHandler in the root rather than adding it manually with .addHandler()
-                # 'root_logger': {
-                #     'class': 'frinx.common.logging.handlers.RootLogHandler',
-                #     'level': 'DEBUG',
-                #     'max_capacity': self._logger_settings.TASK_LOG_HANDLER_CONFIG['max_capacity'],
-                #     'max_message_length': self._logger_settings.TASK_LOG_HANDLER_CONFIG['max_message_length'],
-                # },
             },
             'root': {
-                'handlers': ['file'],  # TODO, see the comment above
+                'handlers': ['file'],  # NOTE: The root_log_handler is attached automatically.
                 'level': self.level,
                 'propagate': False,
-            },
-            'loggers': {
-                'logger_placeholder': {
-                    'handlers': self.handlers,
-                    'level': self.level,
-                    'propagate': False,
-                },
             },
         }

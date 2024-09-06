@@ -3,7 +3,7 @@ import logging.config
 import threading
 from collections import deque
 
-from frinx.common.logging.config import LoggerSettings
+from frinx.common.logging.settings import LoggerSettings
 
 
 class RootLogHandler(logging.Handler):

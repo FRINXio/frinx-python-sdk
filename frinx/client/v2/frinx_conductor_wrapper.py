@@ -239,6 +239,7 @@ class FrinxConductorWrapper:
 
     def execute(self, task: RawTaskIO, task_blueprint: WorkerImpl) -> None:
         try:
+            logger.info('Executing a task %s', task['taskId'])
             root_log_handler.set_task_info_for_thread(str(task['taskType']), str(task['workflowInstanceId']))
             resp = task_blueprint.execute_wrapper(task)
 
