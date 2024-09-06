@@ -188,6 +188,7 @@ class TestWorkers(ServiceWorkersImpl):
 
         def execute(self, worker_input: WorkerInput) -> TaskResult[WorkerOutput]:
             import logging
+
             from frinx.common.logging.root_logger import root_logger
 
             module_logger = logging.getLogger(__name__)

@@ -4,6 +4,8 @@ from pathlib import Path
 
 from pydantic_settings import BaseSettings
 
+from frinx.common.type_aliases import DictAny
+
 
 class LoggerSettings(BaseSettings):
     LOG_FILE_PATH: Path = Path(os.environ.get('LOG_FILE_PATH', '/tmp/workers.log'))
@@ -24,7 +26,7 @@ class LoggerConfig:
         self.level = level or self._logger_settings.DEFAULT_LOG_LEVEL
         self.handlers = handlers or self._logger_settings.DEFAULT_HANDLERS
 
-    def setup_logging(self):
+    def setup_logging(self) -> None:
         """Set up logging configuration using dictConfig."""
         if LoggerConfig._setup_done:
             return  # Prevent reconfiguration
@@ -32,7 +34,7 @@ class LoggerConfig:
         logging.config.dictConfig(self.generate_logging_config())
         LoggerConfig._setup_done = True
 
-    def generate_logging_config(self) -> dict:
+    def generate_logging_config(self) -> DictAny:
         """Generate the logging configuration dictionary."""
         return {
             'version': 1,
