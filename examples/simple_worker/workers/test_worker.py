@@ -171,3 +171,38 @@ class TestWorkers(ServiceWorkersImpl):
                     bytes=len(text.encode('utf-8'))
                 )
             )
+
+    class Logs(WorkerImpl):
+        class WorkerDefinition(TaskDefinition):
+            name: str = 'TEST_logs'
+            description: str = 'testing purposes: logging'
+            labels: ListAny = ['TEST']
+            timeout_seconds: int = 60
+            response_timeout_seconds: int = 60
+
+        class WorkerInput(TaskInput):
+            ...
+
+        class WorkerOutput(TaskOutput):
+            ...
+
+        def execute(self, worker_input: WorkerInput) -> TaskResult[WorkerOutput]:
+            import logging
+            from frinx.common.logging.root_logger import root_logger
+
+            module_logger = logging.getLogger(__name__)
+
+            module_logger.info('This is an INFO message from module_logger')
+            module_logger.debug('This is a DEBUG message from module_logger')
+            module_logger.warning('This is a WARNING message from module_logger')
+            module_logger.error('This is an ERROR message from module_logger')
+
+            root_logger.info('This is an INFO message from the root_logger')
+            root_logger.debug('This is a DEBUG message from the root_logger')
+            root_logger.warning('This is a WARNING message from the root_logger')
+            root_logger.error('This is an ERROR message from the root_logger')
+
+            return TaskResult(
+                status=TaskResultStatus.COMPLETED,
+                logs=['This is a log message from TaskResult.']
+            )

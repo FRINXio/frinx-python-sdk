@@ -1,17 +1,16 @@
 import logging.config
+import os
 from pathlib import Path
 
 from pydantic_settings import BaseSettings
 
 
 class LoggerSettings(BaseSettings):
-    LOG_FILE_PATH: Path = Path.cwd() / 'workers.log'  # TODO
-    DEFAULT_LOG_LEVEL: str = 'INFO'
+    LOG_FILE_PATH: Path = Path(os.environ.get('LOG_FILE_PATH', '/tmp/workers.log'))
+    DEFAULT_LOG_LEVEL: str = os.environ.get('LOG_LEVEL', 'INFO').upper()
     DEFAULT_HANDLERS: list[str] = ['file', 'console']
-    TASK_LOG_HANDLER_CONFIG: dict = {
-        'max_capacity': 100,
-        'max_message_length': 15000
-    }  # TODO
+    LOG_FORMAT_DEFAULT: str = '%(asctime)s | %(threadName)s | %(levelname)s | %(source)s | %(message)s'
+    LOG_FORMAT_VERBOSE: str = '%(asctime)s [%(levelname)s] %(name)s [%(filename)s:%(lineno)d]: %(message)s'
 
 
 class LoggerConfig:
@@ -40,11 +39,11 @@ class LoggerConfig:
             'disable_existing_loggers': True,
             'formatters': {
                 'verbose_formatter': {
-                    'format': '%(asctime)s [%(levelname)s] %(name)s [%(filename)s:%(lineno)d]: %(message)s',
+                    'format': self._logger_settings.LOG_FORMAT_VERBOSE,
                     'datefmt': '%Y-%m-%d %H:%M:%S',
                 },
                 'default_formatter': {
-                    'format': '%(asctime)s | %(threadName)s | %(levelname)s | %(name)s | %(message)s',
+                    'format': self._logger_settings.LOG_FORMAT_DEFAULT,
                     'datefmt': '%Y-%m-%d %H:%M:%S',
                 },
             },
@@ -62,9 +61,9 @@ class LoggerConfig:
                     'level': self.level,
                     'formatter': 'default_formatter',
                 },
-                # Prefer to configure TaskLogHandler in the root rather than adding it manually with .addHandler()
-                # 'task_logger': {
-                #     'class': 'frinx.common.logging.handlers.TaskLogHandler',
+                # Prefer to configure RootLogHandler in the root rather than adding it manually with .addHandler()
+                # 'root_logger': {
+                #     'class': 'frinx.common.logging.handlers.RootLogHandler',
                 #     'level': 'DEBUG',
                 #     'max_capacity': self._logger_settings.TASK_LOG_HANDLER_CONFIG['max_capacity'],
                 #     'max_message_length': self._logger_settings.TASK_LOG_HANDLER_CONFIG['max_message_length'],
