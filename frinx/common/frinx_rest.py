@@ -21,6 +21,9 @@ UNICONFIG_ZONE_URL_TEMPLATE = os.getenv('UNICONFIG_ZONE_URL_TEMPLATE', 'http://{
 UNICONFIG_HEADERS = MappingProxyType({'Content-Type': 'application/json'})
 UNICONFIG_REQUEST_PARAMS: MappingProxyType[str, Any] = MappingProxyType({})
 
+# SET SERVICES SETTINGS
+UNICONFIG_KEY_DELIMITER = os.getenv('UNICONFIG_KEY_DELIMITER', '%22')
+
 CONDUCTOR_HEADERS = MappingProxyType(
     {
         'Content-Type': 'application/json',

@@ -4,6 +4,7 @@ from typing import Any
 from requests import JSONDecodeError
 from requests import Response
 
+from frinx.common.frinx_rest import UNICONFIG_KEY_DELIMITER
 from frinx.common.type_aliases import DictAny
 
 
@@ -96,3 +97,13 @@ def parse_response(response: Response) -> Any:
         return response.json()
     except JSONDecodeError:
         return response.text
+
+
+def escape_uniconfig_uri_key(key: str) -> str:
+    """
+    Escape UniConfig URI key value by adding key delimiter at the beginning and end.
+
+    :param key: key value to escape
+    :return: escaped key
+    """
+    return f'{UNICONFIG_KEY_DELIMITER}{key}{UNICONFIG_KEY_DELIMITER}'
