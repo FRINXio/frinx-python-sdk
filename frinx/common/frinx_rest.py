@@ -9,11 +9,11 @@ X_AUTH_USER_GROUP = os.getenv('X_AUTH_USER_GROUP', 'network-admin')
 
 # SET SERVICES URL VARIABLES
 UNICONFIG_URL_BASE = os.getenv('UNICONFIG_URL_BASE', 'http://uniconfig:8181/rests')
-CONDUCTOR_URL_BASE = os.getenv('CONDUCTOR_URL_BASE', 'http://workflow-proxy:8088/proxy/api')
+CONDUCTOR_URL_BASE = os.getenv('CONDUCTOR_URL_BASE', 'http://conductor-server:8080/api')
 INVENTORY_URL_BASE = os.getenv('INVENTORY_URL_BASE', 'http://inventory:8000/graphql')
 INFLUXDB_URL_BASE = os.getenv('INFLUXDB_URL_BASE', 'http://influxdb:8086')
 RESOURCE_MANAGER_URL_BASE = os.getenv('RESOURCE_MANAGER_URL_BASE', 'http://resource-manager:8884/query')
-SCHELLAR_URL_BASE = os.getenv('SCHELLAR_URL_BASE', 'http://schellar:3000/query')
+SCHELLAR_URL_BASE = os.getenv('SCHELLAR_URL_BASE', 'http://conductor-server:3000/query')
 KRAKEND_URL_BASE = os.getenv('KRAKEND_URL_BASE', 'http://krakend:8080')
 UNICONFIG_ZONE_URL_TEMPLATE = os.getenv('UNICONFIG_ZONE_URL_TEMPLATE', 'http://{uc}:8181/rests')
 
