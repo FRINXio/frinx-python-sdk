@@ -65,6 +65,9 @@ exclude = ['examples']
 reportGeneralTypeIssues = "none"
 reportIncompatibleVariableOverride = false
 reportArgumentType = false  # TODO, disabled because pydantic 2.5.3
+executionEnvironments = [
+    { root = "tests/system_tests" }
+]
 
 [tool.ruff]
 line-length = 120
