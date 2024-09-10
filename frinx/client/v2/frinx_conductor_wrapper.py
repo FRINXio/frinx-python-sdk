@@ -24,6 +24,7 @@ import requests
 
 from frinx.client.v2.conductor import WFClientMgr
 from frinx.common.frinx_rest import CONDUCTOR_URL_BASE
+from frinx.common.logging.root_logger import root_log_handler
 from frinx.common.worker.worker import WorkerImpl
 
 logger = logging.getLogger(__name__)
@@ -239,6 +240,7 @@ class FrinxConductorWrapper:
     def execute(self, task: RawTaskIO, task_blueprint: WorkerImpl) -> None:
         try:
             logger.info('Executing a task %s', task['taskId'])
+            root_log_handler.set_task_info_for_thread(str(task['taskType']), str(task['workflowInstanceId']))
             resp = task_blueprint.execute_wrapper(task)
 
             if resp is None:
@@ -248,6 +250,7 @@ class FrinxConductorWrapper:
             task['status'] = resp['status']
             task['outputData'] = resp.get('output', {})
             task['logs'] = resp.get('logs', [])
+            task['logs'].extend(root_log_handler.get_logs())
 
             logger.debug('Executing a task %s, response: %s', task['taskId'], resp)
             logger.debug('Executing a task %s, task body: %s', task['taskId'], task)

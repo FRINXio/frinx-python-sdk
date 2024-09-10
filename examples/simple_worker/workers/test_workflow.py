@@ -57,6 +57,13 @@ class TestWorkflows(ServiceWorkflowsImpl):
 
         def workflow_builder(self, workflow_inputs: WorkflowInput) -> None:
             generate_task = SimpleTask(
+                name=TestWorkers.Logs,
+                task_reference_name='logs',
+                input_parameters=SimpleTaskInputParameters(dict())
+            )
+            self.tasks.append(generate_task)
+
+            generate_task = SimpleTask(
                 name=TestWorkers.LoremIpsum,
                 task_reference_name='generate',
                 input_parameters=SimpleTaskInputParameters(
