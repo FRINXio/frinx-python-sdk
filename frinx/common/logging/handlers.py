@@ -37,6 +37,7 @@ class RootLogHandler(logging.Handler):
         """
         Process and emit a log record. Store the log in a thread-specific queue if the context is task-related.
         """
+        record.threadName = self._shorten_thread_name(record.threadName)
 
         formatted_record: str = self.format(record)
         truncated_record: str = self._truncate_message(formatted_record)
@@ -84,3 +85,7 @@ class RootLogHandler(logging.Handler):
         """Clear the task-specific information for the current thread."""
         if hasattr(self.thread_data, 'task_name'):
             del self.thread_data.task_name
+
+    def _shorten_thread_name(self, thread_name: str | None) -> str:
+        """Shorten the thread name by replacing 'Thread-' with 'T'."""
+        return thread_name.replace('Thread-', 'T') if thread_name is not None else 'UnknownThread'
