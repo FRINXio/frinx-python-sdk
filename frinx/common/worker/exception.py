@@ -38,7 +38,7 @@ class RetryOnExceptionError(Exception):
 
         if self._should_retry(current_poll_count):
             task_result.status = TaskResultStatus.IN_PROGRESS
-            # task_result.callable_after_seconds = self.retry_delay # TODO: Setting delay before it can be retried
+            task["callbackAfterSeconds"] = self.retry_delay_seconds
         else:
             task_result.status = TaskResultStatus.FAILED
 
