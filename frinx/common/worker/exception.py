@@ -1,8 +1,11 @@
 import os
+from typing import Any
+from typing import TypeAlias
 
 from frinx.common.conductor_enums import TaskResultStatus
 from frinx.common.worker.task_result import TaskResult
 
+RawTaskIO: TypeAlias = dict[str, Any]
 
 class RetryOnExceptionError(Exception):
     """
@@ -23,7 +26,7 @@ class RetryOnExceptionError(Exception):
         self.max_retries = max_retries or int(os.getenv('WORKFLOW_TASK_MAX_RETRIES', '3'))
         self.caught_exception: Exception = exception
 
-    def update_task_result(self, task, task_result: TaskResult) -> TaskResult:
+    def update_task_result(self, task: RawTaskIO, task_result: TaskResult[Any]) -> TaskResult[Any]:
         """
         Updates the task result based on the current poll count and retry logic.
 
@@ -38,7 +41,7 @@ class RetryOnExceptionError(Exception):
 
         if self._should_retry(current_poll_count):
             task_result.status = TaskResultStatus.IN_PROGRESS
-            task["callbackAfterSeconds"] = self.retry_delay_seconds
+            task['callbackAfterSeconds'] = self.retry_delay_seconds
         else:
             task_result.status = TaskResultStatus.FAILED
 
@@ -49,7 +52,7 @@ class RetryOnExceptionError(Exception):
         """Determines if the task should be retried based on the current poll count."""
         return current_poll_count < self.max_retries
 
-    def _log_task_status(self, task_result: TaskResult, current_poll_count: int) -> None:
+    def _log_task_status(self, task_result: TaskResult[Any], current_poll_count: int) -> None:
         """Logs the task status with the current poll count and exception details."""
         error_name: str = type(self.caught_exception).__name__
         error_info: str = str(self.caught_exception)

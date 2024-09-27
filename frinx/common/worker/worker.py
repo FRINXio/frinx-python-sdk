@@ -225,17 +225,17 @@ class WorkerImpl:
             match error:
 
                 case RetryOnExceptionError() as retry_on_error:
-                    error_name: str = retry_on_error.get_caught_exception_name
-                    error_info: str = str(error)
+                    error_name = retry_on_error.get_caught_exception_name
+                    error_info: str | DictAny = str(error)
                     task_result = retry_on_error.update_task_result(task, task_result)
 
                 case ValidationError() as validation_error:
                     task_result.logs = [TaskExecLog(f'{error_name}: {error}')]
-                    error_info: str | DictAny = self._validate_exception_format(validation_error)
+                    error_info = self._validate_exception_format(validation_error)
 
                 case _:
                     task_result.logs = [TaskExecLog(f'{error_name}: {error}')]
-                    error_info: str = str(error)
+                    error_info = str(error)
 
             error_dict = {'error_name': error_name, 'error_info': error_info}
             error_dict_with_output_path = self._parse_exception_output_path_to_dict(
