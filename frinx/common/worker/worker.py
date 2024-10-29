@@ -243,8 +243,6 @@ class WorkerImpl:
 
             task_result.output = TaskOutput(**error_dict_with_output_path)
 
-            logger.error('%s error occurred: %s \n%s', error_name, error, str(traceback.format_exc()))
-
         return task_result
 
     def execute_wrapper(self, task: RawTaskIO) -> Any:

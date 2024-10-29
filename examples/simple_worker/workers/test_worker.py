@@ -231,13 +231,13 @@ class TestWorkers(ServiceWorkersImpl):
                 Simulates three consecutive failures by using an environment variable to track attempts.
                 Raises an exception on the first three executions and succeeds on the fourth.
                 """
-                env_var_name: str = f"{self.__class__.__name__}_attempt_count"
-                attempt_count: int = int(os.getenv(env_var_name, 0))
+                env_var_name: str = f'{self.__class__.__name__}_attempt_count'
+                attempt_count: int = int(os.getenv(env_var_name, 'O'))
 
                 try:
-                    if attempt_count < 3:
-                        os.environ[env_var_name]: str = str(attempt_count + 1)
-                        raise RuntimeError("Simulated failure")
+                    if attempt_count < 3:  # noqa: PLR2004
+                        os.environ[env_var_name] = str(attempt_count + 1)
+                        raise RuntimeError('Simulated failure')
                     else:
                         os.environ.pop(env_var_name, None)
                 except RuntimeError as e:
