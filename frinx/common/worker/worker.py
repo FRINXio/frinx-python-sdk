@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 import time
-import traceback
 from abc import abstractmethod
 from functools import reduce
 from json import JSONDecodeError
