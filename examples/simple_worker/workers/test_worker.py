@@ -1,3 +1,4 @@
+import os
 import random
 import time
 from typing import Optional
@@ -225,30 +226,24 @@ class TestWorkers(ServiceWorkersImpl):
 
         def execute(self, worker_input: WorkerInput) -> TaskResult[WorkerOutput]:
 
-            def fail_once() -> None:
+            def fail_three_times() -> None:
                 """
-                Simulates a failure on the first execution by creating a temporary file and raising an exception.
-                If the temporary file exists, it is removed, indicating a previous failure.
-
-                Raises:
-                    RetryOnExceptionError: Raised to trigger a retry with a specified delay.
+                Simulates three consecutive failures by using an environment variable to track attempts.
+                Raises an exception on the first three executions and succeeds on the fourth.
                 """
-                import tempfile
-                from pathlib import Path
-
-                temp_file_path: Path = Path(tempfile.gettempdir()) / f'{self.__class__.__name__}.txt'
-
-                if temp_file_path.exists():
-                    temp_file_path.unlink()
-                    return
+                env_var_name: str = f"{self.__class__.__name__}_attempt_count"
+                attempt_count: int = int(os.getenv(env_var_name, 0))
 
                 try:
-                    temp_file_path.write_text('Hello World!')
-                    raise ZeroDivisionError('Simulated failure')
-                except ZeroDivisionError as e:
+                    if attempt_count < 3:
+                        os.environ[env_var_name]: str = str(attempt_count + 1)
+                        raise RuntimeError("Simulated failure")
+                    else:
+                        os.environ.pop(env_var_name, None)
+                except RuntimeError as e:
                     raise RetryOnExceptionError(e, max_retries=5, retry_delay_seconds=5)
 
-            fail_once()
+            fail_three_times()
 
             return TaskResult(
                 status=TaskResultStatus.COMPLETED,

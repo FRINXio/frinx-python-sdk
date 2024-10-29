@@ -7,6 +7,7 @@ from frinx.common.worker.task_result import TaskResult
 
 RawTaskIO: TypeAlias = dict[str, Any]
 
+
 class RetryOnExceptionError(Exception):
     """
     Exception class representing a task that needs to be retried.
@@ -41,7 +42,7 @@ class RetryOnExceptionError(Exception):
 
         if self._should_retry(current_poll_count):
             task_result.status = TaskResultStatus.IN_PROGRESS
-            task['callbackAfterSeconds'] = self.retry_delay_seconds
+            task_result.callback_after_seconds = self.retry_delay_seconds
         else:
             task_result.status = TaskResultStatus.FAILED
 
@@ -56,7 +57,8 @@ class RetryOnExceptionError(Exception):
         """Logs the task status with the current poll count and exception details."""
         error_name: str = type(self.caught_exception).__name__
         error_info: str = str(self.caught_exception)
-        log_message = f'{RetryOnExceptionError.__name__}({current_poll_count}): {error_name} - {error_info}'
+        log_message = (f'{RetryOnExceptionError.__name__}({current_poll_count}/{self.max_retries}): '
+                       f'{error_name} - {error_info}')
 
         if isinstance(task_result.logs, str):
             task_result.logs = [task_result.logs]
