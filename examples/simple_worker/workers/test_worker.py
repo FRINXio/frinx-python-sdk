@@ -1,3 +1,4 @@
+import os
 import random
 import time
 from typing import Optional
@@ -7,6 +8,7 @@ from pydantic import field_validator
 from frinx.common.conductor_enums import TaskResultStatus
 from frinx.common.type_aliases import DictAny
 from frinx.common.type_aliases import ListAny
+from frinx.common.worker.exception import RetryOnExceptionError
 from frinx.common.worker.service import ServiceWorkersImpl
 from frinx.common.worker.task_def import TaskDefinition
 from frinx.common.worker.task_def import TaskInput
@@ -206,4 +208,44 @@ class TestWorkers(ServiceWorkersImpl):
             return TaskResult(
                 status=TaskResultStatus.COMPLETED,
                 logs=['This is a log message from TaskResult.']
+            )
+
+    class SimulateRetryableErrorWorker(WorkerImpl):
+        class WorkerDefinition(TaskDefinition):
+            name: str = 'TEST_simulate_retryable_error'
+            description: str = 'testing purposes: simulates a retryable error'
+            labels: ListAny = ['TEST']
+            timeout_seconds: int = 60
+            response_timeout_seconds: int = 60
+
+        class WorkerInput(TaskInput):
+            ...
+
+        class WorkerOutput(TaskOutput):
+            output: str
+
+        def execute(self, worker_input: WorkerInput) -> TaskResult[WorkerOutput]:
+
+            def fail_three_times() -> None:
+                """
+                Simulates three consecutive failures by using an environment variable to track attempts.
+                Raises an exception on the first three executions and succeeds on the fourth.
+                """
+                env_var_name: str = f'{self.__class__.__name__}_attempt_count'
+                attempt_count: int = int(os.getenv(env_var_name, 'O'))
+
+                try:
+                    if attempt_count < 3:  # noqa: PLR2004
+                        os.environ[env_var_name] = str(attempt_count + 1)
+                        raise RuntimeError('Simulated failure')
+                    else:
+                        os.environ.pop(env_var_name, None)
+                except RuntimeError as e:
+                    raise RetryOnExceptionError(e, max_retries=5, retry_delay_seconds=5)
+
+            fail_three_times()
+
+            return TaskResult(
+                status=TaskResultStatus.COMPLETED,
+                output=self.WorkerOutput(output='passed')
             )

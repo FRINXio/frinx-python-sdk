@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 import time
-import traceback
 from abc import abstractmethod
 from functools import reduce
 from json import JSONDecodeError
@@ -25,6 +24,7 @@ from frinx.common.type_aliases import DictStr
 from frinx.common.type_aliases import ListStr
 from frinx.common.util import jsonify_description
 from frinx.common.util import remove_empty_elements_from_root_dict
+from frinx.common.worker.exception import RetryOnExceptionError
 from frinx.common.worker.task_def import BaseTaskdef
 from frinx.common.worker.task_def import DefaultTaskDefinition
 from frinx.common.worker.task_def import TaskDefinition
@@ -214,21 +214,26 @@ class WorkerImpl:
         # https://mypy.readthedocs.io/en/stable/common_issues.html#incompatible-overrides
         pass
 
-    def exception_response_handler(self, error: Exception, **kwargs: Any) -> TaskResult[WorkerOutput]:
+    def exception_response_handler(self, task: RawTaskIO, error: Exception, **kwargs: Any) -> TaskResult[WorkerOutput]:
 
         error_name: str = error.__class__.__name__
         execution_properties: TaskExecutionProperties = kwargs.get('execution_properties', TaskExecutionProperties())
-
-        task_result: TaskResult[Any] = TaskResult(
-            status=TaskResultStatus.FAILED,
-            logs=[TaskExecLog(f'{error_name}: {error}')]
-        )
+        task_result: TaskResult[Any] = TaskResult(status=TaskResultStatus.FAILED)
 
         if execution_properties.pass_task_error_to_task_output:
             match error:
-                case ValidationError():
-                    error_info: str | DictAny = self._validate_exception_format(error)
+
+                case RetryOnExceptionError() as retry_on_error:
+                    error_name = retry_on_error.get_caught_exception_name
+                    error_info: str | DictAny = str(error)
+                    task_result = retry_on_error.update_task_result(task, task_result)
+
+                case ValidationError() as validation_error:
+                    task_result.logs = [TaskExecLog(f'{error_name}: {error}')]
+                    error_info = self._validate_exception_format(validation_error)
+
                 case _:
+                    task_result.logs = [TaskExecLog(f'{error_name}: {error}')]
                     error_info = str(error)
 
             error_dict = {'error_name': error_name, 'error_info': error_info}
@@ -236,8 +241,6 @@ class WorkerImpl:
                 dot_path={execution_properties.pass_task_error_to_task_output_path: error_dict})
 
             task_result.output = TaskOutput(**error_dict_with_output_path)
-
-            logger.error('%s error occurred: %s \n%s', error_name, error, str(traceback.format_exc()))
 
         return task_result
 
@@ -266,6 +269,7 @@ class WorkerImpl:
             increment_task_execution_error(metrics, task_type, error)
             increment_uncaught_exception(metrics, task_type)
             return self.exception_response_handler(
+                task=task,
                 error=error,
                 execution_properties=execution_properties
             ).model_dump()

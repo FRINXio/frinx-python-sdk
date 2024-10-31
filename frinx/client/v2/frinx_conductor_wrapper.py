@@ -113,7 +113,7 @@ class TaskSource:
 
 class FrinxConductorWrapper:
     def __init__(
-        self, server_url: str, max_thread_count: int, polling_interval: float = 0.1,
+            self, server_url: str, max_thread_count: int, polling_interval: float = 0.1,
             worker_id: str | None = None, headers: dict[str, Any] | None = None
     ) -> None:
         # Synchronizes access to self.queues by producer thread (in read_queue) and consumer threads (in tasks_in_queue)
@@ -247,10 +247,12 @@ class FrinxConductorWrapper:
                 error_msg = 'Task execution function MUST return a response as a dict with status and output fields'
                 raise Exception(error_msg)
 
-            task['status'] = resp['status']
-            task['outputData'] = resp.get('output', {})
-            task['logs'] = resp.get('logs', [])
-            task['logs'].extend(root_log_handler.get_logs())
+            task.update({
+                'status': resp['status'],
+                'callbackAfterSeconds': resp.get('callback_after_seconds', 0),
+                'outputData': resp.get('output', {}),
+                'logs': resp.get('logs', []) + root_log_handler.get_logs()
+            })
 
             logger.debug('Executing a task %s, response: %s', task['taskId'], resp)
             logger.debug('Executing a task %s, task body: %s', task['taskId'], task)

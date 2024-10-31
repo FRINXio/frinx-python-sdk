@@ -31,6 +31,7 @@ class TaskResult(BaseModel, Generic[TO]):
     status: TaskResultStatus
     output: TO | None = None
     logs: typing.Union[list[str], str] = Field(default=[])
+    callback_after_seconds: int | None = Field(default=0)
 
     model_config = ConfigDict(
         validate_assignment=True,

@@ -38,9 +38,7 @@ class RootLogHandler(logging.Handler):
         Process and emit a log record. Store the log in a thread-specific queue if the context is task-related.
         """
         record.threadName = self._shorten_thread_name(record.threadName)
-
-        formatted_record: str = self.format(record)
-        truncated_record: str = self._truncate_message(formatted_record)
+        truncated_record: str = self._truncate_message(record.message)
 
         if self._is_task:
             if not hasattr(self.thread_data, 'log_queue'):
