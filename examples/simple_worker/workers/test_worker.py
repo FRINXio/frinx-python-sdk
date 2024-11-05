@@ -232,7 +232,7 @@ class TestWorkers(ServiceWorkersImpl):
                 Raises an exception on the first three executions and succeeds on the fourth.
                 """
                 env_var_name: str = f'{self.__class__.__name__}_attempt_count'
-                attempt_count: int = int(os.getenv(env_var_name, 'O'))
+                attempt_count: int = int(os.getenv(env_var_name, '0'))
 
                 try:
                     if attempt_count < 3:  # noqa: PLR2004

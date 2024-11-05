@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import logging
+import sys
 import time
+import traceback
 from abc import abstractmethod
 from functools import reduce
 from json import JSONDecodeError
@@ -266,6 +268,7 @@ class WorkerImpl:
             logger.debug('Task result %s:', task_result)
             return task_result
         except Exception as error:
+            sys.stderr.write(traceback.format_exc())
             increment_task_execution_error(metrics, task_type, error)
             increment_uncaught_exception(metrics, task_type)
             return self.exception_response_handler(
