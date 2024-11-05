@@ -27,14 +27,6 @@ jobs:
         uses: abatilo/actions-poetry@v2
         with:
           poetry-version: ${{ matrix.poetry-version }}
-      - name: Clone ga_workflows_collected_data
-        if: ${{ ( success() || failure() ) &&  ( steps.execute_tests.outcome != 'skipped' ) }}
-        uses: actions/checkout@v3
-        with:
-          repository: FRINXio/ga_workflows_collected_data
-          ref: main
-          token: ${{ secrets.token_ga_workflows_collected_data }}
-          path: ./ga_workflows_collected_data
       - name: Install package dependencies
         run: poetry install
       - name: Execute worker and dependency
