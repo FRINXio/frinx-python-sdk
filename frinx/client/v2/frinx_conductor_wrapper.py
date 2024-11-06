@@ -251,7 +251,8 @@ class FrinxConductorWrapper:
                 'status': resp['status'],
                 'callbackAfterSeconds': resp.get('callback_after_seconds', 0),
                 'outputData': resp.get('output', {}),
-                'logs': resp.get('logs', []) + root_log_handler.get_logs()
+                'logs': resp.get('logs', []) + root_log_handler.get_logs(),
+                'reasonForIncompletion': ','.join(resp.get('logs', [])),
             })
 
             logger.debug('Executing a task %s, response: %s', task['taskId'], resp)
