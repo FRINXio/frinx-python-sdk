@@ -226,24 +226,24 @@ class TestWorkers(ServiceWorkersImpl):
 
         def execute(self, worker_input: WorkerInput) -> TaskResult[WorkerOutput]:
 
-            def fail_three_times() -> None:
+            def fail_two_times() -> None:
                 """
-                Simulates three consecutive failures by using an environment variable to track attempts.
-                Raises an exception on the first three executions and succeeds on the fourth.
+                Simulates two consecutive failures by using an environment variable to track attempts.
+                Raises an exception on the first two executions and succeeds on the third.
                 """
                 env_var_name: str = f'{self.__class__.__name__}_attempt_count'
                 attempt_count: int = int(os.getenv(env_var_name, '0'))
 
                 try:
-                    if attempt_count < 3:  # noqa: PLR2004
+                    if attempt_count < 2:  # noqa: PLR2004
                         os.environ[env_var_name] = str(attempt_count + 1)
                         raise RuntimeError('Simulated failure')
                     else:
                         os.environ.pop(env_var_name, None)
                 except RuntimeError as e:
-                    raise RetryOnExceptionError(e, max_retries=5, retry_delay_seconds=5)
+                    raise RetryOnExceptionError(e, max_retries=5, retry_delay_seconds=1)
 
-            fail_three_times()
+            fail_two_times()
 
             return TaskResult(
                 status=TaskResultStatus.COMPLETED,
