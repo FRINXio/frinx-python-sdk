@@ -134,7 +134,7 @@ async def test_performance_simple_wf(timestamp: Optional[float] = None, context:
     collect_stats_filename = str(COLLECT_STATS_FOLDER) + 'conductor_system_tests.json'
 
     executions = 1000
-    sleep = 8
+    sleep = 15
     sampling_rate = 10
 
     if timestamp is None:
@@ -230,7 +230,7 @@ async def test_performance_fork() -> None:
 
     executions = 10
     forks = 100
-    sleep = 8
+    sleep = 15
     sampling_rate = 1
     subwf_output_item_len = 3
 
@@ -322,7 +322,7 @@ async def test_performance_simple_wf_external_storage() -> None:
     collect_stats_filename = str(COLLECT_STATS_FOLDER) + 'conductor_system_tests.json'
 
     executions = 200
-    sleep = 8
+    sleep = 15
     sampling_rate = 10
 
     timestamp = time.time()

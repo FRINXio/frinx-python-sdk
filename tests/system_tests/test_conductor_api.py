@@ -60,7 +60,7 @@ async def wait_for_completion(sleep_seconds: int, executed_id: str, session: aio
 
 @pytest.mark.asyncio
 async def test_path_and_family_apis() -> None:
-    sleep = 8
+    sleep = 15
 
     async with aiohttp.ClientSession() as session:
         executed_id = await asyncio.ensure_future(exec_wf(session, CONDUCTOR_WF_EXEC_RQ_FORK, 0))
