@@ -210,6 +210,8 @@ class TestWorkers(ServiceWorkersImpl):
                 logs=['This is a log message from TaskResult.']
             )
 
+    # TODO: Not currently used in any workflow or test
+    # A new standalone workflow and test scenario should be created
     class SimulateRetryableErrorWorker(WorkerImpl):
         class WorkerDefinition(TaskDefinition):
             name: str = 'TEST_simulate_retryable_error'
