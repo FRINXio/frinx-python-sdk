@@ -56,13 +56,6 @@ class TestWorkflows(ServiceWorkflowsImpl):
             bytes: str
 
         def workflow_builder(self, workflow_inputs: WorkflowInput) -> None:
-            simulate_retryable_error_task = SimpleTask(
-                name=TestWorkers.SimulateRetryableErrorWorker,
-                task_reference_name='retryable_error',
-                input_parameters=SimpleTaskInputParameters(dict())
-            )
-            self.tasks.append(simulate_retryable_error_task)
-
             simulate_logs_task = SimpleTask(
                 name=TestWorkers.Logs,
                 task_reference_name='logs',
